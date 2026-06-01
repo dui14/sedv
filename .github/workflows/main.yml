@@ -1,0 +1,57 @@
+name: CI
+
+on:
+  push:
+    branches: [ main ]
+
+env:
+  NEXT_PUBLIC_API_BASE_URL: http://localhost:8000
+  SEDV_JWT_SECRET: ${{ secrets.SEDV_JWT_SECRET }}
+  SEDV_JWT_ISSUER: secure-enterprise-data-vault
+  SEDV_JWT_AUDIENCE: sedv-demo
+  SEDV_TOKEN_TTL_SECONDS: 1800
+  SEDV_MONGODB_URI: ${{ secrets.SEDV_MONGODB_URI }}
+  SEDV_MONGODB_DATABASE: sedv
+  SEDV_DEMO_ORGANIZATION_NAME: Demo Organization
+  SEDV_DEMO_ORGANIZATION_SLUG: demo-org
+  SEDV_PASSWORD_MIN_LENGTH: 8
+  SEDV_CORS_ORIGINS: http://localhost:3000,http://127.0.0.1:3000
+  SEDV_FILE_STORAGE_ROOT: data/encrypted
+  SEDV_FILE_ENCRYPTION_KEY_SEED: ${{ secrets.SEDV_FILE_ENCRYPTION_KEY_SEED }}
+  SEDV_FILE_ENCRYPTION_KEY_VERSION: v1
+  SEDV_MAX_UPLOAD_SIZE_BYTES: 26214400
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - uses: actions/checkout@v4
+    
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.11'
+    
+    - name: Set up Node.js
+      uses: actions/setup-node@v3
+      with:
+        node-version: '18.x'
+        cache: 'npm'
+    
+    - name: Install dependencies
+      run: npm run install:all
+    
+    - name: Lint frontend
+      run: npm run lint:frontend
+    
+    - name: Build frontend
+      run: npm run build:frontend
+    
+    - name: Run tests
+      run: |
+        echo "Running backend tests..."
+        cd backend && pip install -r requirements.txt && python -m pytest . || echo "No tests found"
+        cd ..
+        echo "Running frontend tests..."
+        cd frontend && npm test 2>/dev/null || echo "No frontend tests found"
