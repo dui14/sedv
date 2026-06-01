@@ -1,0 +1,50 @@
+SEDV Demo User Accounts
+=======================
+Login URL: http://localhost:3000/login
+
+ADMIN (2 accounts)
+------------------
+admin1@company.com    / Admin@123
+admin2@company.com    / Admin@123
+
+MANAGER (6 accounts)
+--------------------
+manager1@company.com  / Manager@123
+manager2@company.com  / Manager@123
+manager3@company.com  / Manager@123
+manager4@company.com  / Manager@123
+manager5@company.com  / Manager@123
+manager6@company.com  / Manager@123
+
+USER (24 accounts)
+------------------
+user1@company.com     / User@123
+user2@company.com     / User@123
+user3@company.com     / User@123
+user4@company.com     / User@123
+user5@company.com     / User@123
+user6@company.com     / User@123
+user7@company.com     / User@123
+user8@company.com     / User@123
+user9@company.com     / User@123
+user10@company.com    / User@123
+user11@company.com    / User@123
+user12@company.com    / User@123
+user13@company.com    / User@123
+user14@company.com    / User@123
+user15@company.com    / User@123
+user16@company.com    / User@123
+user17@company.com    / User@123
+user18@company.com    / User@123
+user19@company.com    / User@123
+user20@company.com    / User@123
+user21@company.com    / User@123
+user22@company.com    / User@123
+user23@company.com    / User@123
+user24@company.com    / User@123
+
+ROLE CAPABILITIES QUICK REFERENCE
+-----------------------------------
+Admin   : all files (vault & private), user CRUD, full audit log, file CRUD
+Manager : general vault (all statuses), approval queue, audit log (general only)
+User    : own private files, published general files, my activity, request publish
