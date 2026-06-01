@@ -54,7 +54,7 @@ desktop.ini
 .claude/
 
 # GitHub analytics
-.github
+.github\copilot-instructions.md
 
 # Docs and markdown files
 *.md
