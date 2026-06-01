@@ -69,11 +69,32 @@ class FileService:
 				search=term,
 			)
 		elif role == "manager":
-			records = self._file_repository.list_files(
-				context.user.organization_id,
-				vault_type="general" if vault_type is None else vault_type,
-				search=term,
-			)
+			if vault_type == "private":
+				records = self._file_repository.list_files(
+					context.user.organization_id,
+					owner_user_id=context.user.user_id,
+					vault_type=VaultType.PRIVATE.value,
+					search=term,
+				)
+			elif vault_type == "general":
+				records = self._file_repository.list_files(
+					context.user.organization_id,
+					vault_type=VaultType.GENERAL.value,
+					search=term,
+				)
+			else:
+				general_records = self._file_repository.list_files(
+					context.user.organization_id,
+					vault_type=VaultType.GENERAL.value,
+					search=term,
+				)
+				private_records = self._file_repository.list_files(
+					context.user.organization_id,
+					owner_user_id=context.user.user_id,
+					vault_type=VaultType.PRIVATE.value,
+					search=term,
+				)
+				records = sorted(general_records + private_records, key=lambda r: r.created_at, reverse=True)
 		else:
 			if vault_type == "private":
 				records = self._file_repository.list_files(
@@ -109,6 +130,7 @@ class FileService:
 				]
 				records = private_records + general_published
 
+		records = [r for r in records if r.publish_status != PublishStatus.REJECTED.value]
 		total = len(records)
 		start = (page - 1) * page_size
 		end = start + page_size
@@ -149,7 +171,15 @@ class FileService:
 			storage_path = self._storage.write(storage_name, encrypted_bytes)
 			now = now_utc()
 
-			if vault_type == VaultType.GENERAL.value:
+			reviewed_by_user_id = None
+			reviewed_at = None
+			review_note = None
+			if vault_type == VaultType.GENERAL.value and can_approve_file(context.user.role):
+				publish_status = PublishStatus.PUBLISHED.value
+				reviewed_by_user_id = context.user.user_id
+				reviewed_at = now
+				review_note = "Auto-published by privileged uploader."
+			elif vault_type == VaultType.GENERAL.value:
 				publish_status = PublishStatus.PENDING.value
 			else:
 				publish_status = PublishStatus.NOT_APPLICABLE.value
@@ -170,9 +200,9 @@ class FileService:
 				encryption_key_version=self._settings.file_encryption_key_version,
 				vault_type=vault_type,
 				publish_status=publish_status,
-				reviewed_by_user_id=None,
-				reviewed_at=None,
-				review_note=None,
+				reviewed_by_user_id=reviewed_by_user_id,
+				reviewed_at=reviewed_at,
+				review_note=review_note,
 				status=Status.ACTIVE.value,
 				deleted_at=None,
 				created_at=now,
@@ -426,16 +456,57 @@ class FileService:
 			raise NotFoundError(code="file_not_found", message="The requested file could not be found.")
 		if record.owner_user_id != context.user.user_id:
 			raise ForbiddenError(code="forbidden", message="You can only request publish for your own files.")
+		existing = self._file_repository.get_pending_publish_request(file_id)
+		if can_approve_file(context.user.role):
+			if record.vault_type != VaultType.PRIVATE.value and existing is None:
+				raise ConflictError(code="not_private", message="Only private vault files can be requested for publish.")
+			if existing is None:
+				existing = self._file_repository.create_publish_request(
+					organization_id=context.user.organization_id,
+					file_id=file_id,
+					requester_user_id=context.user.user_id,
+				)
+			now = now_utc()
+			updated_request = self._file_repository.update_publish_request(
+				existing.request_id,
+				status=RequestStatus.APPROVED.value,
+				reviewed_by_user_id=context.user.user_id,
+				reviewed_at=now,
+				review_note="Auto-published by privileged requester.",
+			)
+			record = self._file_repository.admin_update_file(
+				file_id,
+				fields={
+					"vault_type": VaultType.GENERAL.value,
+					"publish_status": PublishStatus.PUBLISHED.value,
+					"reviewed_by_user_id": context.user.user_id,
+					"reviewed_at": now,
+					"review_note": "Auto-published by privileged requester.",
+				},
+			)
+			self._audit_service.record_event(
+				organization_id=context.user.organization_id,
+				actor_user_id=context.user.user_id,
+				action="request_publish",
+				resource_type="file",
+				resource_id=file_id,
+				result="success",
+				reason="auto_published",
+				ip_address=ip_address,
+				user_agent=user_agent,
+			)
+			return self._to_request_response(updated_request, record)
+		if existing is not None:
+			synced = self._sync_file_for_publish_review(file_id)
+			return self._to_request_response(existing, synced)
 		if record.vault_type != VaultType.PRIVATE.value:
 			raise ConflictError(code="not_private", message="Only private vault files can be requested for publish.")
-		existing = self._file_repository.get_pending_publish_request(file_id)
-		if existing is not None:
-			raise ConflictError(code="request_exists", message="A pending publish request already exists for this file.")
 		request = self._file_repository.create_publish_request(
 			organization_id=context.user.organization_id,
 			file_id=file_id,
 			requester_user_id=context.user.user_id,
 		)
+		record = self._sync_file_for_publish_review(file_id)
 		self._audit_service.record_event(
 			organization_id=context.user.organization_id,
 			actor_user_id=context.user.user_id,
@@ -499,9 +570,17 @@ class FileService:
 		)
 		file_record = self._file_repository.get_file_by_id(req.file_id)
 		if approved and file_record is not None:
-			self._file_repository.update_publish_status(
+			file_record = self._file_repository.update_publish_status(
 				req.file_id,
 				publish_status=PublishStatus.PUBLISHED.value,
+				reviewed_by_user_id=context.user.user_id,
+				reviewed_at=now,
+				review_note=note,
+			)
+		elif file_record is not None:
+			file_record = self._file_repository.update_publish_status(
+				req.file_id,
+				publish_status=PublishStatus.REJECTED.value,
 				reviewed_by_user_id=context.user.user_id,
 				reviewed_at=now,
 				review_note=note,
@@ -547,6 +626,18 @@ class FileService:
 			user_agent=user_agent,
 		)
 		return self._to_item_response(updated)
+
+	def _sync_file_for_publish_review(self, file_id: str) -> FileRecord:
+		return self._file_repository.admin_update_file(
+			file_id,
+			fields={
+				"vault_type": VaultType.GENERAL.value,
+				"publish_status": PublishStatus.PENDING.value,
+				"reviewed_by_user_id": None,
+				"reviewed_at": None,
+				"review_note": None,
+			},
+		)
 
 	def _resolve_visible_file(self, context: AuthContext, file_id: str, *, for_delete: bool = False) -> FileRecord:
 		record = self._file_repository.get_file_by_id(file_id)

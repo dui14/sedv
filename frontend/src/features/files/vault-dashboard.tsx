@@ -9,11 +9,13 @@ import {
   CircleAlert,
   Download,
   FileText,
+  Info,
   Loader2,
   RefreshCw,
   Search,
   Trash2,
   Upload,
+  X,
 } from "lucide-react";
 
 import { apiRequest, authHeaders, buildApiUrl } from "../../lib/api";
@@ -64,6 +66,7 @@ export function VaultDashboard() {
 	const [errorMsg, setErrorMsg] = useState<string | null>(null);
 	const [successMsg, setSuccessMsg] = useState<string | null>(null);
 	const [isUploadOpen, setIsUploadOpen] = useState(false);
+	const [detailFile, setDetailFile] = useState<FileItem | null>(null);
 	const [actionLoading, setActionLoading] = useState<string | null>(null);
 	const PAGE_SIZE = 15;
 	const totalPages = Math.max(1, Math.ceil(total / PAGE_SIZE));
@@ -163,8 +166,8 @@ export function VaultDashboard() {
 		<div className={styles.page}>
 			<div className={styles.pageHeader}>
 				<div>
-					<h1 className={styles.pageTitle}>My Files</h1>
-					<p className={styles.pageSubtitle}>All files visible to your role.</p>
+					<h1 className={styles.pageTitle}>Vault</h1>
+					<p className={styles.pageSubtitle}>General and private files visible to your role.</p>
 				</div>
 				<div className={styles.headerActions}>
 					{token && (
@@ -295,6 +298,14 @@ export function VaultDashboard() {
 													<button
 														className={styles.actionBtn}
 														type="button"
+														title="File details"
+														onClick={() => setDetailFile(file)}
+													>
+														<Info size={14} />
+													</button>
+													<button
+														className={styles.actionBtn}
+														type="button"
 														title="Download"
 														disabled={busy}
 														onClick={() => handleDownload(file)}
@@ -350,6 +361,9 @@ export function VaultDashboard() {
 										<span>{fmtDate(file.created_at)}</span>
 									</div>
 									<div className={styles.actions}>
+										<button className={styles.actionBtn} type="button" title="File details" onClick={() => setDetailFile(file)}>
+											<Info size={14} />
+										</button>
 										<button className={styles.actionBtn} type="button" title="Download" disabled={busy} onClick={() => handleDownload(file)}>
 											{busy ? <Loader2 size={14} className={styles.spinner} /> : <Download size={14} />}
 										</button>
@@ -404,6 +418,58 @@ export function VaultDashboard() {
 						if (token) void loadFiles(token, 1, submitted);
 					}}
 				/>
+			)}
+
+			{detailFile && (
+				<div className={styles.modalBackdrop} role="presentation" onClick={() => setDetailFile(null)}>
+					<section
+						className={styles.detailModal}
+						role="dialog"
+						aria-modal="true"
+						aria-label={`File details for ${detailFile.original_name}`}
+						onClick={(event) => event.stopPropagation()}
+					>
+						<div className={styles.detailHeader}>
+							<div>
+								<h2 className={styles.detailTitle}>{detailFile.original_name}</h2>
+								<p className={styles.detailSubtitle}>Review metadata before downloading.</p>
+							</div>
+							<button className={styles.actionBtn} type="button" title="Close details" onClick={() => setDetailFile(null)}>
+								<X size={14} />
+							</button>
+						</div>
+
+						<div className={styles.detailStatusRow}>
+							<span className={detailFile.vault_type === "private" ? styles.tagPrivate : styles.tagGeneral}>
+								{detailFile.vault_type === "private" ? "Private" : "General"}
+							</span>
+							<span className={STATUS_COLORS[detailFile.publish_status] ?? styles.tagNa}>
+								{STATUS_LABELS[detailFile.publish_status] ?? detailFile.publish_status}
+							</span>
+						</div>
+
+						<dl className={styles.detailGrid}>
+							<div><dt>Owner</dt><dd>{detailFile.owner_name || "Unknown"}</dd></div>
+							<div><dt>MIME type</dt><dd>{detailFile.mime_type}</dd></div>
+							<div><dt>Size</dt><dd>{fmtBytes(detailFile.size_bytes)}</dd></div>
+							<div><dt>Uploaded</dt><dd>{fmtDate(detailFile.created_at)}</dd></div>
+							<div><dt>Updated</dt><dd>{fmtDate(detailFile.updated_at)}</dd></div>
+							<div><dt>Encryption</dt><dd>{detailFile.encryption_algorithm}</dd></div>
+							<div className={styles.detailWide}><dt>SHA-256</dt><dd className={styles.hashValue}>{detailFile.sha256}</dd></div>
+							{detailFile.reviewed_at && <div><dt>Reviewed</dt><dd>{fmtDate(detailFile.reviewed_at)}</dd></div>}
+							{detailFile.review_note && <div className={styles.detailWide}><dt>Review note</dt><dd>{detailFile.review_note}</dd></div>}
+						</dl>
+
+						<div className={styles.detailActions}>
+							<button className={styles.secondaryButton} type="button" onClick={() => setDetailFile(null)}>
+								Close
+							</button>
+							<button className={styles.primaryButton} type="button" onClick={() => handleDownload(detailFile)} disabled={actionLoading === detailFile.file_id}>
+								{actionLoading === detailFile.file_id ? <><Loader2 size={15} className={styles.spinner} /> Downloading...</> : <><Download size={15} /> Download file</>}
+							</button>
+						</div>
+					</section>
+				</div>
 			)}
 		</div>
 	);

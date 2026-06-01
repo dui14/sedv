@@ -445,6 +445,129 @@
   animation: spin 700ms linear infinite;
 }
 
+.modalBackdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 100;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+  background: rgba(7, 17, 31, 0.82);
+}
+
+.detailModal {
+  width: min(100%, 620px);
+  max-height: 90vh;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+  padding: 22px;
+  border-radius: 14px;
+  border: 1px solid #264066;
+  background: #0b1628;
+}
+
+.detailHeader {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.detailTitle {
+  margin: 0;
+  font-family: "Space Grotesk", sans-serif;
+  font-size: 19px;
+  font-weight: 600;
+  color: #f7faff;
+  overflow-wrap: anywhere;
+}
+
+.detailSubtitle {
+  margin: 4px 0 0;
+  font-family: "IBM Plex Sans", sans-serif;
+  font-size: 13px;
+  color: #91a4c2;
+}
+
+.detailStatusRow {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.detailGrid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+  margin: 0;
+}
+
+.detailGrid div {
+  min-width: 0;
+  padding: 12px;
+  border-radius: 10px;
+  background: #07111f;
+  border: 1px solid #1a2b47;
+}
+
+.detailGrid dt {
+  margin: 0 0 5px;
+  font-family: "IBM Plex Sans", sans-serif;
+  font-size: 12px;
+  font-weight: 600;
+  color: #91a4c2;
+}
+
+.detailGrid dd {
+  margin: 0;
+  font-family: "IBM Plex Sans", sans-serif;
+  font-size: 14px;
+  color: #f7faff;
+  overflow-wrap: anywhere;
+}
+
+.detailWide {
+  grid-column: 1 / -1;
+}
+
+.hashValue {
+  font-family: "IBM Plex Mono", ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace !important;
+  font-size: 12px !important;
+  line-height: 1.5;
+}
+
+.detailActions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+@media (max-width: 560px) {
+  .modalBackdrop {
+    align-items: stretch;
+    padding: 12px;
+  }
+
+  .detailModal {
+    width: 100%;
+    max-height: none;
+  }
+
+  .detailGrid {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .spinner {
+    animation: none;
+  }
+}
+
 @keyframes spin {
   to { transform: rotate(360deg); }
 }
