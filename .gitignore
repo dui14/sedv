@@ -1,0 +1,64 @@
+# ─── Secrets and environment ───────────────────────────────────────────────
+.env
+.env.local
+.env.*.local
+frontend/.env.local
+frontend/.env.*.local
+
+# ─── Python virtual environment ─────────────────────────────────────────────
+.venv/
+venv/
+env/
+ENV/
+
+# ─── Python compiled files ───────────────────────────────────────────────────
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+*.so
+*.egg
+*.egg-info/
+dist/
+build/
+.eggs/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+htmlcov/
+.coverage
+.coverage.*
+
+# ─── Node / Frontend ─────────────────────────────────────────────────────────
+node_modules/
+frontend/node_modules/
+frontend/.next/
+frontend/out/
+frontend/.turbo/
+.npm
+
+# ─── Encrypted file storage ──────────────────────────────────────────────────
+data/
+
+# ─── Editor and IDE ──────────────────────────────────────────────────────────
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# ─── OS generated ────────────────────────────────────────────────────────────
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# ─── Claude Code session files ───────────────────────────────────────────────
+.agents/
+.claude/
+
+# ─── GitHub analytics ────────────────────────────────────────────────────────
+.github/traffic.json
+
+# ─── Project report artifacts ────────────────────────────────────────────────
+*.docx
+Secure_Enterprise_Data_Vault_Report.md
