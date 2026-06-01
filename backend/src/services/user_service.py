@@ -60,8 +60,8 @@ class UserService:
 		email = normalize_email(payload.email)
 		full_name = validate_full_name(payload.full_name)
 		password = validate_registration_password(payload.password, self._settings.password_min_length)
-		if payload.role not in {Role.ADMIN.value, Role.MANAGER.value, Role.USER.value}:
-			raise ValidationAppError(code="invalid_role", message="role must be admin, manager, or user.")
+		if payload.role not in {Role.MANAGER.value, Role.USER.value}:
+			raise ValidationAppError(code="invalid_role", message="Admins can only create manager or user accounts.")
 		existing = self._auth_repository.get_user_by_email(context.user.organization_id, email)
 		if existing is not None:
 			raise ConflictError(code="email_already_exists", message="A user with this email already exists.")
@@ -99,13 +99,27 @@ class UserService:
 		target = self._auth_repository.get_user_by_id(user_id)
 		if target is None or target.organization_id != context.user.organization_id:
 			raise NotFoundError(code="user_not_found", message="The requested user could not be found.")
-		if payload.role is not None and payload.role not in {Role.ADMIN.value, Role.MANAGER.value, Role.USER.value}:
-			raise ValidationAppError(code="invalid_role", message="role must be admin, manager, or user.")
+		if target.role == Role.ADMIN.value:
+			raise ForbiddenError(code="forbidden", message="Admin accounts cannot be edited here.")
+		if payload.role is not None and payload.role not in {Role.MANAGER.value, Role.USER.value}:
+			raise ValidationAppError(code="invalid_role", message="role must be manager or user.")
 		if payload.status is not None and payload.status not in {Status.ACTIVE.value, Status.DISABLED.value, Status.PENDING.value}:
 			raise ValidationAppError(code="invalid_status", message="status must be active, disabled, or pending.")
+		email = normalize_email(payload.email) if payload.email is not None else None
+		full_name = validate_full_name(payload.full_name) if payload.full_name is not None else None
+		password_hash = None
+		if payload.password is not None:
+			password = validate_registration_password(payload.password, self._settings.password_min_length)
+			password_hash = hash_password(password)
+		if email is not None and email != target.email:
+			existing = self._auth_repository.get_user_by_email(context.user.organization_id, email)
+			if existing is not None and existing.user_id != user_id:
+				raise ConflictError(code="email_already_exists", message="A user with this email already exists.")
 		updated = self._auth_repository.update_user(
 			user_id,
-			full_name=payload.full_name,
+			email=email,
+			full_name=full_name,
+			password_hash=password_hash,
 			role=payload.role,
 			status=payload.status,
 		)
@@ -137,6 +151,8 @@ class UserService:
 		target = self._auth_repository.get_user_by_id(user_id)
 		if target is None or target.organization_id != context.user.organization_id:
 			raise NotFoundError(code="user_not_found", message="The requested user could not be found.")
+		if target.role == Role.ADMIN.value:
+			raise ForbiddenError(code="forbidden", message="Admin accounts cannot be deleted here.")
 		self._auth_repository.delete_user(user_id)
 		self._audit_service.record_event(
 			organization_id=context.user.organization_id,

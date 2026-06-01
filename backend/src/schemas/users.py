@@ -43,6 +43,8 @@ class CreateUserRequest(BaseModel):
 
 class UpdateUserRequest(BaseModel):
 	model_config = ConfigDict(extra="forbid")
+	email: str | None = None
 	full_name: str | None = None
+	password: str | None = None
 	role: str | None = None
 	status: str | None = None

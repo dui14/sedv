@@ -5,11 +5,8 @@ import { useEffect, useState } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import {
   BarChart3,
-  BookOpen,
   ClipboardCheck,
   Files,
-  FolderLock,
-  Globe,
   History,
   LogOut,
   Menu,
@@ -37,9 +34,7 @@ type NavItem = {
 };
 
 const NAV: NavItem[] = [
-  { href: "/dashboard", label: "My Files", Icon: Files, roles: ["admin", "manager", "user"] },
-  { href: "/vault/general", label: "General Vault", Icon: Globe, roles: ["admin", "manager", "user"] },
-  { href: "/vault/private", label: "Private Vault", Icon: FolderLock, roles: ["user"] },
+  { href: "/dashboard", label: "Vault", Icon: Files, roles: ["admin", "manager", "user"] },
   { href: "/approvals", label: "Approval Queue", Icon: ClipboardCheck, roles: ["admin", "manager"] },
   { href: "/users", label: "Users", Icon: Users, roles: ["admin"] },
   { href: "/audit-log", label: "Audit Log", Icon: BarChart3, roles: ["admin", "manager"] },

@@ -37,7 +37,7 @@ export function UserManagement() {
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
   const [modal, setModal] = useState<UserModal>(null);
-  const [formState, setFormState] = useState({ email: "", full_name: "", password: "", role: "user" as "admin" | "manager" | "user", status: "active" as "active" | "disabled" | "pending" });
+  const [formState, setFormState] = useState({ email: "", full_name: "", password: "", role: "user" as "manager" | "user", status: "active" as "active" | "disabled" | "pending" });
   const [formError, setFormError] = useState<string | null>(null);
   const [formLoading, setFormLoading] = useState(false);
   const PAGE_SIZE = 15;
@@ -76,6 +76,7 @@ export function UserManagement() {
   }
 
   function openEdit(user: UserItem) {
+    if (user.role === "admin") return;
     setFormState({ email: user.email, full_name: user.full_name, password: "", role: user.role, status: user.status });
     setFormError(null); setModal({ mode: "edit", user });
   }
@@ -97,9 +98,11 @@ export function UserManagement() {
         setSuccess("User created.");
       } else {
         const patch: Record<string, string> = {};
+        if (formState.email !== modal.user.email) patch.email = formState.email;
         if (formState.full_name !== modal.user.full_name) patch.full_name = formState.full_name;
         if (formState.role !== modal.user.role) patch.role = formState.role;
         if (formState.status !== modal.user.status) patch.status = formState.status;
+        if (formState.password.trim()) patch.password = formState.password;
         if (Object.keys(patch).length > 0) {
           await apiRequest(`/api/users/${modal.user.user_id}`, {
             method: "PATCH",
@@ -183,27 +186,34 @@ export function UserManagement() {
                 </tr>
               </thead>
               <tbody>
-                {users.map((u) => (
-                  <tr key={u.user_id}>
-                    <td className={styles.tdName}>{u.full_name}</td>
-                    <td className={styles.tdMuted}>{u.email}</td>
-                    <td><span className={ROLE_CLS[u.role]}>{ROLE_LABEL[u.role]}</span></td>
-                    <td><span className={STATUS_CLS[u.status] ?? styles.statusPending}>{u.status}</span></td>
-                    <td className={styles.tdMuted}>{fmtDate(u.last_login_at)}</td>
-                    <td>
-                      <div className={styles.actions}>
-                        <button className={styles.iconBtn} type="button" title="Edit" onClick={() => openEdit(u)}>
-                          <Pencil size={14} />
-                        </button>
-                        {u.user_id !== me?.user_id && (
-                          <button className={`${styles.iconBtn} ${styles.deleteBtn}`} type="button" title="Delete" onClick={() => handleDelete(u)}>
-                            <Trash2 size={14} />
-                          </button>
+                {users.map((u) => {
+                  const canManageAccount = u.role !== "admin";
+                  return (
+                    <tr key={u.user_id}>
+                      <td className={styles.tdName}>{u.full_name}</td>
+                      <td className={styles.tdMuted}>{u.email}</td>
+                      <td><span className={ROLE_CLS[u.role]}>{ROLE_LABEL[u.role]}</span></td>
+                      <td><span className={STATUS_CLS[u.status] ?? styles.statusPending}>{u.status}</span></td>
+                      <td className={styles.tdMuted}>{fmtDate(u.last_login_at)}</td>
+                      <td>
+                        {canManageAccount ? (
+                          <div className={styles.actions}>
+                            <button className={styles.iconBtn} type="button" title="Edit" onClick={() => openEdit(u)}>
+                              <Pencil size={14} />
+                            </button>
+                            {u.user_id !== me?.user_id && (
+                              <button className={`${styles.iconBtn} ${styles.deleteBtn}`} type="button" title="Delete" onClick={() => handleDelete(u)}>
+                                <Trash2 size={14} />
+                              </button>
+                            )}
+                          </div>
+                        ) : (
+                          <span className={styles.tdMuted}>Locked</span>
                         )}
-                      </div>
-                    </td>
-                  </tr>
-                ))}
+                      </td>
+                    </tr>
+                  );
+                })}
               </tbody>
             </table>
           </div>
@@ -251,12 +261,23 @@ export function UserManagement() {
                   </label>
                 </>
               )}
+              {modal.mode === "edit" && (
+                <>
+                  <label className={styles.field}>
+                    <span className={styles.fieldLabel}>Email</span>
+                    <input className={styles.input} type="email" value={formState.email} onChange={(e) => setFormState((s) => ({ ...s, email: e.target.value }))} disabled={formLoading} />
+                  </label>
+                  <label className={styles.field}>
+                    <span className={styles.fieldLabel}>New password</span>
+                    <input className={styles.input} type="password" placeholder="Leave blank to keep current password" value={formState.password} onChange={(e) => setFormState((s) => ({ ...s, password: e.target.value }))} disabled={formLoading} />
+                  </label>
+                </>
+              )}
               <label className={styles.field}>
                 <span className={styles.fieldLabel}>Role</span>
                 <select className={styles.select} value={formState.role} onChange={(e) => setFormState((s) => ({ ...s, role: e.target.value as typeof formState.role }))} disabled={formLoading}>
                   <option value="user">User</option>
                   <option value="manager">Manager</option>
-                  <option value="admin">Admin</option>
                 </select>
               </label>
               {modal.mode === "edit" && (
