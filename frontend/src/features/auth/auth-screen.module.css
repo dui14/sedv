@@ -1,0 +1,222 @@
+.screen {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+  background: #07111f;
+}
+
+.shell {
+  width: min(100%, 440px);
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+.header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.logo {
+  width: 36px;
+  height: 36px;
+  display: grid;
+  place-items: center;
+  border-radius: 10px;
+  background: #11213a;
+  border: 1px solid #264066;
+  color: #4f8cff;
+  flex-shrink: 0;
+}
+
+.logoLabel {
+  margin: 0;
+  font-family: "IBM Plex Sans", sans-serif;
+  font-size: 13px;
+  line-height: 18px;
+  color: #91a4c2;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.card {
+  background: #0b1628;
+  border: 1px solid #264066;
+  border-radius: 16px;
+  padding: 28px;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.cardTitle {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.cardTitleIcon {
+  color: #4f8cff;
+}
+
+.title {
+  margin: 0;
+  font-family: "Space Grotesk", sans-serif;
+  font-size: 22px;
+  line-height: 28px;
+  font-weight: 600;
+  color: #f7faff;
+}
+
+.subtitle {
+  margin: 0;
+  font-family: "IBM Plex Sans", sans-serif;
+  font-size: 14px;
+  line-height: 20px;
+  color: #91a4c2;
+}
+
+.errorBanner {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  border-radius: 10px;
+  border: 1px solid rgba(240, 82, 82, 0.4);
+  background: rgba(240, 82, 82, 0.08);
+  color: #f05252;
+  padding: 12px 14px;
+  font-family: "IBM Plex Sans", sans-serif;
+  font-size: 14px;
+  line-height: 20px;
+}
+
+.form {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.label {
+  font-family: "IBM Plex Sans", sans-serif;
+  font-size: 13px;
+  font-weight: 500;
+  color: #d7e2f2;
+}
+
+.input {
+  border-radius: 10px;
+  border: 1px solid #264066;
+  background: #07111f;
+  color: #f7faff;
+  padding: 12px 14px;
+  font-family: "IBM Plex Sans", sans-serif;
+  font-size: 15px;
+  line-height: 22px;
+  width: 100%;
+  transition: border-color 150ms ease, box-shadow 150ms ease;
+}
+
+.input::placeholder {
+  color: #4a5f7a;
+}
+
+.input:focus {
+  outline: none;
+  border-color: #4f8cff;
+  box-shadow: 0 0 0 3px rgba(79, 140, 255, 0.15);
+}
+
+.input:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.primaryButton {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  border: none;
+  border-radius: 10px;
+  background: #2f6bff;
+  color: #f7faff;
+  padding: 13px 20px;
+  font-family: "IBM Plex Sans", sans-serif;
+  font-size: 15px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 150ms ease, transform 100ms ease;
+}
+
+.primaryButton:hover:not(:disabled) {
+  background: #2454d6;
+  transform: translateY(-1px);
+}
+
+.primaryButton:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+  transform: none;
+}
+
+.cardFooter {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding-top: 16px;
+  border-top: 1px solid #1a2b47;
+  font-family: "IBM Plex Sans", sans-serif;
+  font-size: 12px;
+  color: #4a5f7a;
+}
+
+.successCard {
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 16px;
+  padding: 40px 24px;
+}
+
+.successIcon {
+  width: 64px;
+  height: 64px;
+  display: grid;
+  place-items: center;
+  border-radius: 16px;
+  background: rgba(46, 204, 113, 0.1);
+  color: #2ecc71;
+}
+
+.successTitle {
+  margin: 0;
+  font-family: "Space Grotesk", sans-serif;
+  font-size: 24px;
+  font-weight: 600;
+  color: #f7faff;
+}
+
+.successText {
+  margin: 0;
+  font-family: "IBM Plex Sans", sans-serif;
+  font-size: 14px;
+  color: #91a4c2;
+}
+
+.spinner {
+  animation: spin 700ms linear infinite;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}

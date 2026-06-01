@@ -1,0 +1,288 @@
+.backdrop {
+  position: fixed;
+  inset: 0;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  padding: 0;
+  background: rgba(7, 17, 31, 0.8);
+  z-index: 100;
+}
+
+@media (min-width: 640px) {
+  .backdrop {
+    align-items: center;
+    padding: 24px;
+  }
+}
+
+.sheet {
+  width: 100%;
+  max-width: 560px;
+  background: #0b1628;
+  border: 1px solid #264066;
+  border-radius: 16px 16px 0 0;
+  display: flex;
+  flex-direction: column;
+  max-height: 90vh;
+  overflow: hidden;
+}
+
+@media (min-width: 640px) {
+  .sheet {
+    border-radius: 16px;
+    max-height: 85vh;
+  }
+}
+
+.header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 18px 20px 14px;
+  border-bottom: 1px solid #1a2b47;
+  flex-shrink: 0;
+}
+
+.title {
+  margin: 0;
+  font-family: "Space Grotesk", sans-serif;
+  font-size: 18px;
+  font-weight: 600;
+  color: #f7faff;
+}
+
+.closeBtn {
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid #1a2b47;
+  border-radius: 8px;
+  background: transparent;
+  color: #91a4c2;
+  cursor: pointer;
+  transition: background 150ms, color 150ms;
+}
+
+.closeBtn:hover:not(:disabled) {
+  background: #11213a;
+  color: #f7faff;
+}
+
+.body {
+  flex: 1;
+  overflow-y: auto;
+  padding: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.dropZone {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  gap: 10px;
+  padding: 28px 20px;
+  border-radius: 12px;
+  border: 1px dashed #264066;
+  background: #07111f;
+  transition: border-color 150ms, background 150ms;
+}
+
+.dropActive {
+  border-color: #4f8cff;
+  background: rgba(79, 140, 255, 0.05);
+}
+
+.dropHasFile {
+  border-color: #2ecc71;
+  border-style: solid;
+}
+
+.dropIcon {
+  width: 44px;
+  height: 44px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 12px;
+  background: #11213a;
+  border: 1px solid #264066;
+  color: #4f8cff;
+}
+
+.dropTitle {
+  margin: 0;
+  font-family: "IBM Plex Sans", sans-serif;
+  font-size: 14px;
+  font-weight: 600;
+  color: #f7faff;
+  word-break: break-word;
+}
+
+.dropMeta {
+  margin: 0;
+  font-family: "IBM Plex Sans", sans-serif;
+  font-size: 12px;
+  color: #91a4c2;
+}
+
+.hiddenInput {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  border: 0;
+}
+
+.vaultSelect {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.vaultLabel {
+  margin: 0;
+  font-family: "IBM Plex Sans", sans-serif;
+  font-size: 13px;
+  font-weight: 500;
+  color: #d7e2f2;
+}
+
+.vaultOptions {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+}
+
+.vaultOption {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 12px;
+  border-radius: 10px;
+  border: 1px solid #264066;
+  background: #07111f;
+  cursor: pointer;
+  transition: border-color 150ms, background 150ms;
+  color: #91a4c2;
+}
+
+.vaultOption:hover {
+  background: #0b1628;
+  border-color: #4f8cff;
+}
+
+.vaultOptionActive {
+  border-color: #4f8cff;
+  background: rgba(79, 140, 255, 0.08);
+  color: #4f8cff;
+}
+
+.vaultOptionName {
+  margin: 0;
+  font-family: "IBM Plex Sans", sans-serif;
+  font-size: 13px;
+  font-weight: 600;
+  color: #d7e2f2;
+}
+
+.vaultOptionDesc {
+  margin: 3px 0 0;
+  font-family: "IBM Plex Sans", sans-serif;
+  font-size: 11px;
+  color: #4a5f7a;
+  line-height: 1.4;
+}
+
+.errorBanner,
+.successBanner {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  border-radius: 9px;
+  padding: 10px 12px;
+  font-family: "IBM Plex Sans", sans-serif;
+  font-size: 13px;
+}
+
+.errorBanner {
+  border: 1px solid rgba(240, 82, 82, 0.3);
+  background: rgba(240, 82, 82, 0.08);
+  color: #f05252;
+}
+
+.successBanner {
+  border: 1px solid rgba(46, 204, 113, 0.3);
+  background: rgba(46, 204, 113, 0.08);
+  color: #2ecc71;
+}
+
+.footer {
+  display: flex;
+  gap: 10px;
+  justify-content: flex-end;
+  padding: 14px 20px;
+  border-top: 1px solid #1a2b47;
+  flex-shrink: 0;
+}
+
+.primaryButton,
+.secondaryButton {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  border-radius: 9px;
+  padding: 9px 18px;
+  font-family: "IBM Plex Sans", sans-serif;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 150ms, transform 100ms;
+  border: 1px solid transparent;
+}
+
+.primaryButton {
+  background: #2f6bff;
+  color: #f7faff;
+}
+
+.primaryButton:hover:not(:disabled) {
+  background: #2454d6;
+}
+
+.primaryButton:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.secondaryButton {
+  background: #0b1628;
+  border-color: #264066;
+  color: #d7e2f2;
+}
+
+.secondaryButton:hover:not(:disabled) {
+  background: #11213a;
+}
+
+.secondaryButton:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.spinner {
+  animation: spin 700ms linear infinite;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}

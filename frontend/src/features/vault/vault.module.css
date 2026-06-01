@@ -1,0 +1,45 @@
+.page { display: flex; flex-direction: column; gap: 20px; max-width: 1000px; }
+.pageHeader { display: flex; align-items: flex-start; justify-content: space-between; gap: 16px; flex-wrap: wrap; }
+.titleRow { display: flex; align-items: center; gap: 12px; }
+.titleIcon { color: #38bdf8; }
+.titleIconPrivate { color: #f5a524; }
+.pageTitle { margin: 0; font-family: "Space Grotesk", sans-serif; font-size: 22px; font-weight: 600; color: #f7faff; }
+.pageSubtitle { margin: 4px 0 0; font-family: "IBM Plex Sans", sans-serif; font-size: 14px; color: #91a4c2; }
+.headerActions { display: flex; gap: 10px; align-items: center; }
+.successBanner, .errorBanner { display: flex; align-items: center; gap: 10px; padding: 12px 16px; border-radius: 10px; font-family: "IBM Plex Sans", sans-serif; font-size: 14px; }
+.successBanner { background: rgba(46,204,113,0.08); border: 1px solid rgba(46,204,113,0.25); color: #2ecc71; }
+.errorBanner { background: rgba(240,82,82,0.08); border: 1px solid rgba(240,82,82,0.25); color: #f05252; }
+.loading { display: flex; align-items: center; gap: 12px; padding: 48px 0; justify-content: center; font-family: "IBM Plex Sans", sans-serif; font-size: 14px; color: #91a4c2; }
+.empty { display: flex; flex-direction: column; align-items: center; gap: 12px; padding: 56px 24px; text-align: center; }
+.emptyIcon { width: 52px; height: 52px; display: grid; place-items: center; border-radius: 14px; background: #11213a; border: 1px solid #264066; color: #4a5f7a; }
+.emptyTitle { margin: 0; font-family: "Space Grotesk", sans-serif; font-size: 16px; font-weight: 600; color: #d7e2f2; }
+.emptyText { margin: 0; font-family: "IBM Plex Sans", sans-serif; font-size: 14px; color: #4a5f7a; }
+.tableWrap { overflow: auto; border-radius: 12px; border: 1px solid #1a2b47; background: #0b1628; }
+.table { width: 100%; border-collapse: collapse; }
+.table th { padding: 11px 14px; text-align: left; font-family: "IBM Plex Sans", sans-serif; font-size: 12px; font-weight: 600; color: #4a5f7a; text-transform: uppercase; letter-spacing: 0.06em; border-bottom: 1px solid #1a2b47; }
+.table td { padding: 12px 14px; font-family: "IBM Plex Sans", sans-serif; font-size: 14px; color: #d7e2f2; border-bottom: 1px solid #11213a; vertical-align: middle; }
+.table tr:last-child td { border-bottom: none; }
+.tdFile { display: flex; align-items: center; gap: 8px; max-width: 280px; }
+.tdFile span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.tdMuted { color: #91a4c2 !important; white-space: nowrap; }
+.fileIcon { color: #4a5f7a; flex-shrink: 0; }
+.tagPublished { display: inline-flex; align-items: center; border-radius: 6px; padding: 2px 8px; font-family: "IBM Plex Sans", sans-serif; font-size: 12px; font-weight: 500; background: rgba(46,204,113,0.1); color: #2ecc71; border: 1px solid rgba(46,204,113,0.2); }
+.tagPending { display: inline-flex; align-items: center; border-radius: 6px; padding: 2px 8px; font-family: "IBM Plex Sans", sans-serif; font-size: 12px; font-weight: 500; background: rgba(245,165,36,0.1); color: #f5a524; border: 1px solid rgba(245,165,36,0.2); }
+.tagRejected { display: inline-flex; align-items: center; border-radius: 6px; padding: 2px 8px; font-family: "IBM Plex Sans", sans-serif; font-size: 12px; font-weight: 500; background: rgba(240,82,82,0.1); color: #f05252; border: 1px solid rgba(240,82,82,0.2); }
+.tagNa { display: inline-flex; align-items: center; border-radius: 6px; padding: 2px 8px; font-family: "IBM Plex Sans", sans-serif; font-size: 12px; font-weight: 500; background: rgba(145,164,194,0.1); color: #91a4c2; border: 1px solid rgba(145,164,194,0.2); }
+.actions { display: flex; gap: 6px; align-items: center; }
+.iconBtn { width: 30px; height: 30px; display: inline-flex; align-items: center; justify-content: center; border-radius: 7px; border: 1px solid #1a2b47; background: #11213a; color: #91a4c2; cursor: pointer; transition: background 150ms, color 150ms; }
+.iconBtn:hover:not(:disabled) { background: #1a2b47; color: #f7faff; }
+.iconBtn:disabled { opacity: 0.4; cursor: not-allowed; }
+.publishBtn:hover:not(:disabled) { background: rgba(56,189,248,0.15); color: #38bdf8; border-color: rgba(56,189,248,0.3); }
+.deleteBtn:hover:not(:disabled) { background: rgba(240,82,82,0.15); color: #f05252; border-color: rgba(240,82,82,0.3); }
+.pagination { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+.pageInfo { font-family: "IBM Plex Sans", sans-serif; font-size: 13px; color: #91a4c2; }
+.primaryButton, .secondaryButton { display: inline-flex; align-items: center; gap: 7px; border-radius: 9px; padding: 8px 14px; font-family: "IBM Plex Sans", sans-serif; font-size: 14px; font-weight: 600; cursor: pointer; border: 1px solid transparent; transition: background 150ms; }
+.primaryButton { background: #2f6bff; color: #f7faff; }
+.primaryButton:hover { background: #2454d6; }
+.secondaryButton { background: #0b1628; border-color: #264066; color: #d7e2f2; }
+.secondaryButton:hover:not(:disabled) { background: #11213a; }
+.secondaryButton:disabled { opacity: 0.5; cursor: not-allowed; }
+.spinner { animation: spin 700ms linear infinite; }
+@keyframes spin { to { transform: rotate(360deg); } }

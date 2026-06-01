@@ -1,0 +1,60 @@
+.page { display: flex; flex-direction: column; gap: 20px; max-width: 1100px; }
+.pageHeader { display: flex; align-items: flex-start; justify-content: space-between; gap: 16px; flex-wrap: wrap; }
+.titleRow { display: flex; align-items: center; gap: 12px; }
+.titleIcon { color: #f05252; }
+.pageTitle { margin: 0; font-family: "Space Grotesk", sans-serif; font-size: 22px; font-weight: 600; color: #f7faff; }
+.pageSubtitle { margin: 4px 0 0; font-family: "IBM Plex Sans", sans-serif; font-size: 14px; color: #91a4c2; }
+.headerActions { display: flex; gap: 10px; }
+.successBanner, .errorBanner { display: flex; align-items: center; gap: 10px; padding: 12px 16px; border-radius: 10px; font-family: "IBM Plex Sans", sans-serif; font-size: 14px; }
+.successBanner { background: rgba(46,204,113,0.08); border: 1px solid rgba(46,204,113,0.25); color: #2ecc71; }
+.errorBanner { background: rgba(240,82,82,0.08); border: 1px solid rgba(240,82,82,0.25); color: #f05252; }
+.searchBar { display: flex; gap: 10px; align-items: center; }
+.searchWrap { flex: 1; position: relative; }
+.searchIcon { position: absolute; left: 12px; top: 50%; transform: translateY(-50%); color: #4a5f7a; pointer-events: none; }
+.searchField { width: 100%; padding: 10px 12px 10px 36px; border-radius: 9px; border: 1px solid #264066; background: #0b1628; color: #f7faff; font-family: "IBM Plex Sans", sans-serif; font-size: 14px; }
+.searchField::placeholder { color: #4a5f7a; }
+.searchField:focus { outline: none; border-color: #4f8cff; }
+.loading { display: flex; align-items: center; gap: 12px; padding: 48px 0; justify-content: center; font-family: "IBM Plex Sans", sans-serif; font-size: 14px; color: #91a4c2; }
+.empty { padding: 48px 0; text-align: center; }
+.emptyTitle { margin: 0; font-family: "IBM Plex Sans", sans-serif; font-size: 14px; color: #4a5f7a; }
+.tableWrap { overflow: auto; border-radius: 12px; border: 1px solid #1a2b47; background: #0b1628; }
+.table { width: 100%; border-collapse: collapse; }
+.table th { padding: 11px 14px; text-align: left; font-family: "IBM Plex Sans", sans-serif; font-size: 12px; font-weight: 600; color: #4a5f7a; text-transform: uppercase; letter-spacing: 0.06em; border-bottom: 1px solid #1a2b47; }
+.table td { padding: 12px 14px; font-family: "IBM Plex Sans", sans-serif; font-size: 14px; color: #d7e2f2; border-bottom: 1px solid #11213a; vertical-align: middle; }
+.table tr:last-child td { border-bottom: none; }
+.tdName { font-weight: 600; color: #f7faff !important; }
+.tdMuted { color: #91a4c2 !important; }
+.roleAdmin, .roleManager, .roleUser { display: inline-block; border-radius: 6px; padding: 2px 7px; font-family: "IBM Plex Sans", sans-serif; font-size: 12px; font-weight: 600; }
+.roleAdmin { background: rgba(240,82,82,0.1); color: #f05252; border: 1px solid rgba(240,82,82,0.2); }
+.roleManager { background: rgba(245,165,36,0.1); color: #f5a524; border: 1px solid rgba(245,165,36,0.2); }
+.roleUser { background: rgba(79,140,255,0.1); color: #4f8cff; border: 1px solid rgba(79,140,255,0.2); }
+.statusActive, .statusDisabled, .statusPending { display: inline-block; border-radius: 6px; padding: 2px 7px; font-family: "IBM Plex Sans", sans-serif; font-size: 12px; font-weight: 500; }
+.statusActive { background: rgba(46,204,113,0.1); color: #2ecc71; border: 1px solid rgba(46,204,113,0.2); }
+.statusDisabled { background: rgba(145,164,194,0.1); color: #91a4c2; border: 1px solid rgba(145,164,194,0.2); }
+.statusPending { background: rgba(245,165,36,0.1); color: #f5a524; border: 1px solid rgba(245,165,36,0.2); }
+.actions { display: flex; gap: 6px; }
+.iconBtn { width: 30px; height: 30px; display: inline-flex; align-items: center; justify-content: center; border-radius: 7px; border: 1px solid #1a2b47; background: #11213a; color: #91a4c2; cursor: pointer; transition: background 150ms, color 150ms; }
+.iconBtn:hover:not(:disabled) { background: #1a2b47; color: #f7faff; }
+.deleteBtn:hover:not(:disabled) { background: rgba(240,82,82,0.15); color: #f05252; border-color: rgba(240,82,82,0.3); }
+.pagination { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+.pageInfo { font-family: "IBM Plex Sans", sans-serif; font-size: 13px; color: #91a4c2; }
+.primaryButton, .secondaryButton { display: inline-flex; align-items: center; gap: 7px; border-radius: 9px; padding: 8px 14px; font-family: "IBM Plex Sans", sans-serif; font-size: 14px; font-weight: 600; cursor: pointer; border: 1px solid transparent; transition: background 150ms; }
+.primaryButton { background: #2f6bff; color: #f7faff; }
+.primaryButton:hover:not(:disabled) { background: #2454d6; }
+.primaryButton:disabled { opacity: 0.5; cursor: not-allowed; }
+.secondaryButton { background: #0b1628; border-color: #264066; color: #d7e2f2; }
+.secondaryButton:hover:not(:disabled) { background: #11213a; }
+.secondaryButton:disabled { opacity: 0.5; cursor: not-allowed; }
+.modalBackdrop { position: fixed; inset: 0; background: rgba(7,17,31,0.8); display: flex; align-items: center; justify-content: center; padding: 24px; z-index: 100; }
+.modal { background: #0b1628; border: 1px solid #264066; border-radius: 16px; padding: 24px; width: min(100%, 480px); display: flex; flex-direction: column; gap: 20px; max-height: 90vh; overflow-y: auto; }
+.modalTitle { margin: 0; font-family: "Space Grotesk", sans-serif; font-size: 20px; font-weight: 600; color: #f7faff; }
+.formError { display: flex; align-items: center; gap: 8px; padding: 10px 12px; border-radius: 8px; background: rgba(240,82,82,0.08); border: 1px solid rgba(240,82,82,0.25); color: #f05252; font-family: "IBM Plex Sans", sans-serif; font-size: 13px; }
+.formGrid { display: flex; flex-direction: column; gap: 14px; }
+.field { display: flex; flex-direction: column; gap: 6px; }
+.fieldLabel { font-family: "IBM Plex Sans", sans-serif; font-size: 13px; font-weight: 500; color: #d7e2f2; }
+.input, .select { border-radius: 9px; border: 1px solid #264066; background: #07111f; color: #f7faff; padding: 10px 12px; font-family: "IBM Plex Sans", sans-serif; font-size: 14px; width: 100%; }
+.input:focus, .select:focus { outline: none; border-color: #4f8cff; }
+.input:disabled { opacity: 0.6; cursor: not-allowed; }
+.modalActions { display: flex; gap: 10px; justify-content: flex-end; }
+.spinner { animation: spin 700ms linear infinite; }
+@keyframes spin { to { transform: rotate(360deg); } }

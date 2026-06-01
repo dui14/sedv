@@ -1,0 +1,39 @@
+{
+  "name": "sedv-monorepo",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Secure Enterprise Data Vault - Demo Edition",
+  "scripts": {
+    "dev": "concurrently -n \"frontend,backend\" -c \"cyan,magenta\" \"npm run dev:frontend\" \"npm run dev:backend\"",
+    "dev:frontend": "cd frontend && npm run dev",
+    "dev:backend": "cd backend && python -m uvicorn src.main:app --reload --host 0.0.0.0 --port 8000",
+    "seed": "cd backend && python -m scripts.seed_demo_data",
+    "install:all": "npm install && cd frontend && npm install",
+    "build:frontend": "cd frontend && npm run build",
+    "start:frontend": "cd frontend && npm start",
+    "lint:frontend": "cd frontend && npm run lint"
+  },
+  "devDependencies": {
+    "concurrently": "^8.2.2"
+  },
+  "engines": {
+    "node": ">=18.0.0",
+    "npm": ">=9.0.0"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/dui14/vibe-coding-workflow"
+  },
+  "keywords": [
+    "security",
+    "vault",
+    "encryption",
+    "rbac",
+    "audit-log",
+    "fastapi",
+    "nextjs",
+    "mongodb"
+  ],
+  "author": "dui14",
+  "license": "MIT"
+}

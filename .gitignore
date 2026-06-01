@@ -1,17 +1,14 @@
-# ─── Secrets and environment ───────────────────────────────────────────────
+# Secrets and environment
 .env
-.env.local
-.env.*.local
+.env.*
 frontend/.env.local
-frontend/.env.*.local
+frontend/.env.*
 
-# ─── Python virtual environment ─────────────────────────────────────────────
+# Python virtual environment and caches
 .venv/
 venv/
 env/
 ENV/
-
-# ─── Python compiled files ───────────────────────────────────────────────────
 __pycache__/
 *.py[cod]
 *.pyo
@@ -29,7 +26,7 @@ htmlcov/
 .coverage
 .coverage.*
 
-# ─── Node / Frontend ─────────────────────────────────────────────────────────
+# Node / Frontend build output
 node_modules/
 frontend/node_modules/
 frontend/.next/
@@ -37,28 +34,38 @@ frontend/out/
 frontend/.turbo/
 .npm
 
-# ─── Encrypted file storage ──────────────────────────────────────────────────
+# Encrypted file storage and generated data
 data/
 
-# ─── Editor and IDE ──────────────────────────────────────────────────────────
+# Editor and IDE
 .vscode/
 .idea/
 *.swp
 *.swo
 *~
 
-# ─── OS generated ────────────────────────────────────────────────────────────
+# OS generated
 .DS_Store
 Thumbs.db
 desktop.ini
 
-# ─── Claude Code session files ───────────────────────────────────────────────
+# Agent session files
 .agents/
 .claude/
 
-# ─── GitHub analytics ────────────────────────────────────────────────────────
-.github/traffic.json
+# GitHub analytics
+.github
 
-# ─── Project report artifacts ────────────────────────────────────────────────
-*.docx
+# Docs and markdown files
+*.md
+!README.md
+docs/**/*.md
+spec/**/*.md
+ai-context/**/*.md
+agents/**/*.md
+skills/
+spec/
 Secure_Enterprise_Data_Vault_Report.md
+
+# Misc generated artifacts
+*.docx

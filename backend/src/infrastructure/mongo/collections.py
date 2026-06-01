@@ -1,0 +1,6 @@
+ORGANIZATIONS_COLLECTION = "organizations"
+USERS_COLLECTION = "users"
+AUTH_SESSIONS_COLLECTION = "auth_sessions"
+FILES_COLLECTION = "files"
+AUDIT_LOGS_COLLECTION = "audit_logs"
+PUBLISH_REQUESTS_COLLECTION = "publish_requests"

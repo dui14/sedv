@@ -1,0 +1,327 @@
+.shell {
+  display: flex;
+  min-height: 100vh;
+  background: #07111f;
+}
+
+.sidebarMask {
+  display: none;
+}
+
+@media (max-width: 1023px) {
+  .sidebarMask {
+    display: block;
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.6);
+    z-index: 40;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 200ms ease;
+  }
+  .sidebarMaskVisible {
+    opacity: 1;
+    pointer-events: auto;
+  }
+}
+
+.sidebarWrapper {
+  width: 240px;
+  flex-shrink: 0;
+  position: sticky;
+  top: 0;
+  height: 100vh;
+}
+
+@media (max-width: 1023px) {
+  .sidebarWrapper {
+    position: fixed;
+    top: 0;
+    left: 0;
+    height: 100vh;
+    z-index: 50;
+    transform: translateX(-100%);
+    transition: transform 220ms cubic-bezier(0.2, 0.8, 0.2, 1);
+  }
+  .sidebarWrapperOpen {
+    transform: translateX(0);
+  }
+}
+
+.sidebar {
+  width: 240px;
+  height: 100%;
+  background: #0b1628;
+  border-right: 1px solid #1a2b47;
+  display: flex;
+  flex-direction: column;
+}
+
+.sidebarHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16px 16px 8px;
+}
+
+.brand {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.brandIcon {
+  color: #4f8cff;
+}
+
+.brandName {
+  font-family: "Space Grotesk", sans-serif;
+  font-size: 15px;
+  font-weight: 700;
+  color: #f7faff;
+  letter-spacing: 0.08em;
+}
+
+.sidebarClose {
+  display: none;
+  width: 32px;
+  height: 32px;
+  border: none;
+  background: transparent;
+  color: #91a4c2;
+  border-radius: 8px;
+  cursor: pointer;
+  align-items: center;
+  justify-content: center;
+  transition: background 150ms;
+}
+
+.sidebarClose:hover {
+  background: #11213a;
+  color: #f7faff;
+}
+
+@media (max-width: 1023px) {
+  .sidebarClose {
+    display: flex;
+  }
+}
+
+.userBlock {
+  margin: 8px 12px 12px;
+  padding: 12px;
+  background: #07111f;
+  border: 1px solid #1a2b47;
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+}
+
+.userAvatar {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background: #2f6bff;
+  color: #fff;
+  font-family: "Space Grotesk", sans-serif;
+  font-size: 14px;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.userInfo {
+  flex: 1;
+  min-width: 0;
+}
+
+.userName {
+  margin: 0;
+  font-family: "IBM Plex Sans", sans-serif;
+  font-size: 13px;
+  font-weight: 600;
+  color: #f7faff;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.userEmail {
+  margin: 0;
+  font-family: "IBM Plex Sans", sans-serif;
+  font-size: 11px;
+  color: #4a5f7a;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.roleBadge,
+.roleBadgeSmall {
+  border-radius: 6px;
+  font-family: "IBM Plex Sans", sans-serif;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  padding: 2px 6px;
+  flex-shrink: 0;
+}
+
+.roleAdmin {
+  background: rgba(240, 82, 82, 0.15);
+  color: #f05252;
+  border: 1px solid rgba(240, 82, 82, 0.25);
+}
+
+.roleManager {
+  background: rgba(245, 165, 36, 0.15);
+  color: #f5a524;
+  border: 1px solid rgba(245, 165, 36, 0.25);
+}
+
+.roleUser {
+  background: rgba(79, 140, 255, 0.15);
+  color: #4f8cff;
+  border: 1px solid rgba(79, 140, 255, 0.25);
+}
+
+.navList {
+  list-style: none;
+  margin: 0;
+  padding: 4px 8px;
+  flex: 1;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.navItem {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 9px 12px;
+  border-radius: 9px;
+  color: #91a4c2;
+  font-family: "IBM Plex Sans", sans-serif;
+  font-size: 14px;
+  font-weight: 500;
+  text-decoration: none;
+  transition: background 150ms, color 150ms;
+}
+
+.navItem:hover {
+  background: #11213a;
+  color: #d7e2f2;
+}
+
+.navItemActive {
+  background: rgba(47, 107, 255, 0.15);
+  color: #4f8cff;
+  font-weight: 600;
+}
+
+.navItemActive:hover {
+  background: rgba(47, 107, 255, 0.2);
+  color: #4f8cff;
+}
+
+.sidebarFooter {
+  padding: 12px 8px;
+  border-top: 1px solid #1a2b47;
+}
+
+.logoutButton {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  padding: 9px 12px;
+  border: none;
+  border-radius: 9px;
+  background: transparent;
+  color: #4a5f7a;
+  font-family: "IBM Plex Sans", sans-serif;
+  font-size: 14px;
+  cursor: pointer;
+  transition: background 150ms, color 150ms;
+  text-align: left;
+}
+
+.logoutButton:hover {
+  background: rgba(240, 82, 82, 0.1);
+  color: #f05252;
+}
+
+.main {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.topbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 20px;
+  border-bottom: 1px solid #1a2b47;
+  background: #07111f;
+  position: sticky;
+  top: 0;
+  z-index: 10;
+}
+
+.menuButton {
+  display: none;
+  width: 36px;
+  height: 36px;
+  border: 1px solid #1a2b47;
+  border-radius: 8px;
+  background: #0b1628;
+  color: #91a4c2;
+  cursor: pointer;
+  align-items: center;
+  justify-content: center;
+  transition: background 150ms, color 150ms;
+}
+
+.menuButton:hover {
+  background: #11213a;
+  color: #f7faff;
+}
+
+@media (max-width: 1023px) {
+  .menuButton {
+    display: flex;
+  }
+}
+
+.topbarRight {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-left: auto;
+}
+
+.topbarUser {
+  font-family: "IBM Plex Sans", sans-serif;
+  font-size: 13px;
+  color: #91a4c2;
+}
+
+.content {
+  flex: 1;
+  padding: 24px;
+}
+
+@media (max-width: 640px) {
+  .content {
+    padding: 16px;
+  }
+}
