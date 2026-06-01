@@ -203,22 +203,31 @@ class AuthRepository:
         self,
         user_id: str,
         *,
+        email: str | None = None,
         full_name: str | None = None,
+        password_hash: str | None = None,
         role: str | None = None,
         status: str | None = None,
     ):
         fields: dict = {"updated_at": now_utc()}
+        if email is not None:
+            fields["email"] = email
         if full_name is not None:
             fields["full_name"] = full_name
+        if password_hash is not None:
+            fields["password_hash"] = password_hash
         if role is not None:
             fields["role"] = role
         if status is not None:
             fields["status"] = status
-        document = self._users.find_one_and_update(
-            {"_id": user_id},
-            {"$set": fields},
-            return_document=ReturnDocument.AFTER,
-        )
+        try:
+            document = self._users.find_one_and_update(
+                {"_id": user_id},
+                {"$set": fields},
+                return_document=ReturnDocument.AFTER,
+            )
+        except DuplicateKeyError as exc:
+            raise ConflictError(code="email_already_exists", message="A user with this email already exists.") from exc
         if document is None:
             raise NotFoundError(code="user_not_found", message="The requested user could not be found.")
         return _user_from_document(document)
