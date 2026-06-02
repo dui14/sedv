@@ -54,12 +54,13 @@ desktop.ini
 .claude/
 
 # GitHub analytics
-.github\copilot-instructions.md
+.github/copilot-instructions.md
 
 # Docs and markdown files
-*.md
 !README.md
-docs/**/*.md
+AGENT.md
+CLAUDE.md
+idea.md
 spec/**/*.md
 ai-context/**/*.md
 agents/**/*.md
