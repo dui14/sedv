@@ -40,6 +40,11 @@ class AuthUserResponse(BaseModel):
 	full_name: str
 	role: str
 	status: str
+	floor_id: str | None = None
+	floor_name: str | None = None
+	pending_floor_id: str | None = None
+	pending_floor_name: str | None = None
+	manager_id: str | None = None
 	last_login_at: datetime | None = None
 	created_at: datetime
 	updated_at: datetime
