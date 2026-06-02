@@ -40,7 +40,9 @@ jobs:
         cache: 'npm'
     
     - name: Install dependencies
-      run: npm run install:all
+      run: |
+        npm install
+        cd frontend && npm install --include=dev
     
     - name: Lint frontend
       run: npm run lint:frontend
