@@ -10,7 +10,8 @@ class Status(str, Enum):
 
 
 class VaultType(str, Enum):
-	GENERAL = "general"
+	FLOOR = "floor"
+	COMPANY = "company"
 	PRIVATE = "private"
 
 

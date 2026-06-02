@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from datetime import datetime
 
 
@@ -16,3 +16,8 @@ class UserRecord:
 	last_login_at: datetime | None
 	created_at: datetime
 	updated_at: datetime
+	floor_id: str | None = field(default=None)
+	floor_name: str | None = field(default=None)
+	pending_floor_id: str | None = field(default=None)
+	pending_floor_name: str | None = field(default=None)
+	manager_id: str | None = field(default=None)

@@ -28,6 +28,7 @@ class FileRecord:
 	deleted_at: datetime | None
 	created_at: datetime
 	updated_at: datetime
+	floor_id: str | None = None
 
 
 @dataclass(slots=True)
@@ -36,6 +37,7 @@ class PublishRequestRecord:
 	organization_id: str
 	file_id: str
 	requester_user_id: str
+	target: str
 	status: str
 	reviewed_by_user_id: str | None
 	reviewed_at: datetime | None

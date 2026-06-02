@@ -22,8 +22,8 @@ class Settings(BaseSettings):
     token_ttl_seconds: int = 1800
     mongodb_uri: str = "mongodb://localhost:27017"
     mongodb_database: str = "sedv"
-    demo_organization_name: str = "Demo Organization"
-    demo_organization_slug: str = "demo-org"
+    demo_organization_name: str = "Nexus Digital Solutions"
+    demo_organization_slug: str = "nexus-digital"
     password_min_length: int = 8
     file_storage_root: str = "data/encrypted"
     file_encryption_key_seed: str = "dev-file-encryption-key"
