@@ -16,6 +16,7 @@ Setup:
 4. Copy `.env.example` and `frontend/.env.local.example`, then fill in the required values.
 5. Seed demo data with `cd backend && python seed.py`.
 6. Start the app with `npm run dev`.
+7. Read [docs/architecture.md](docs/architecture.md) for architectural details.
 
 Frontend: `http://localhost:3000`
 Backend: `http://localhost:8000`
