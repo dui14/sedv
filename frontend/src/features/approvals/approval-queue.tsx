@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import {
+  Building2,
   CheckCircle2,
   ChevronLeft,
   ChevronRight,
@@ -14,34 +15,31 @@ import {
   ThumbsUp,
 } from "lucide-react";
 
-import { apiRequest, authHeaders, buildApiUrl } from "../../lib/api";
+import { apiRequest, authHeaders } from "../../lib/api";
 import { getAccessToken } from "../../lib/auth";
-import type { AuthUser, FileItem, FileListResponse } from "../../types";
+import type { AuthUser, PublishRequestItem, PublishRequestListResponse } from "../../types";
 
 import styles from "./approval-queue.module.css";
-
-function fmtBytes(n: number): string {
-  if (n < 1024) return `${n} B`;
-  if (n < 1048576) return `${(n / 1024).toFixed(1)} KB`;
-  return `${(n / 1048576).toFixed(1)} MB`;
-}
 
 function fmtDate(s: string): string {
   return new Intl.DateTimeFormat(undefined, { dateStyle: "medium", timeStyle: "short" }).format(new Date(s));
 }
 
+const TARGET_LABEL: Record<string, string> = { floor: "Floor", company: "Company" };
+
 export function ApprovalQueue() {
   const router = useRouter();
   const [user, setUser] = useState<AuthUser | null>(null);
+  const [me, setMe] = useState<AuthUser | null>(null);
   const [token, setToken] = useState<string | null>(null);
-  const [files, setFiles] = useState<FileItem[]>([]);
+  const [requests, setRequests] = useState<PublishRequestItem[]>([]);
   const [total, setTotal] = useState(0);
   const [page, setPage] = useState(1);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
   const [actionLoading, setActionLoading] = useState<string | null>(null);
-  const [noteModal, setNoteModal] = useState<{ fileId: string; action: "approve" | "reject" } | null>(null);
+  const [noteModal, setNoteModal] = useState<{ requestId: string; action: "approve" | "reject" } | null>(null);
   const [noteText, setNoteText] = useState("");
   const PAGE_SIZE = 15;
   const totalPages = Math.max(1, Math.ceil(total / PAGE_SIZE));
@@ -52,7 +50,7 @@ export function ApprovalQueue() {
     setToken(t);
     apiRequest<AuthUser>("/api/auth/me", { headers: authHeaders(t) })
       .then((u) => {
-        setUser(u);
+        setUser(u); setMe(u);
         if (!["admin", "manager"].includes(u.role)) { router.replace("/dashboard"); return; }
         return load(t, 1);
       })
@@ -62,9 +60,9 @@ export function ApprovalQueue() {
   async function load(t: string, p: number) {
     setLoading(true); setError(null);
     try {
-      const params = new URLSearchParams({ page: String(p), page_size: String(PAGE_SIZE) });
-      const data = await apiRequest<FileListResponse>(`/api/files/approvals?${params}`, { headers: authHeaders(t) });
-      setFiles(data.items); setTotal(data.total); setPage(data.page);
+      const params = new URLSearchParams({ status: "pending", page: String(p), page_size: String(PAGE_SIZE) });
+      const data = await apiRequest<PublishRequestListResponse>(`/api/files/publish-requests?${params}`, { headers: authHeaders(t) });
+      setRequests(data.items); setTotal(data.total); setPage(p);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Could not load queue.");
     } finally {
@@ -72,23 +70,23 @@ export function ApprovalQueue() {
     }
   }
 
-  function openNote(fileId: string, action: "approve" | "reject") {
-    setNoteText(""); setNoteModal({ fileId, action });
+  function openNote(requestId: string, action: "approve" | "reject") {
+    setNoteText(""); setNoteModal({ requestId, action });
   }
 
   async function submitAction() {
     if (!noteModal || !token) return;
-    const { fileId, action } = noteModal;
-    setActionLoading(fileId); setNoteModal(null);
+    const { requestId, action } = noteModal;
+    setActionLoading(requestId); setNoteModal(null);
     setSuccess(null); setError(null);
     try {
-      const endpoint = `/api/files/${fileId}/${action}`;
+      const endpoint = `/api/files/publish-requests/${requestId}/${action}`;
       await apiRequest(endpoint, {
         method: "POST",
         headers: { ...authHeaders(token), "Content-Type": "application/json" },
         body: JSON.stringify({ note: noteText.trim() || null }),
       });
-      setSuccess(`File ${action === "approve" ? "approved" : "rejected"}.`);
+      setSuccess(`Request ${action === "approve" ? "approved" : "rejected"}.`);
       await load(token, page);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Action failed.");
@@ -97,12 +95,16 @@ export function ApprovalQueue() {
     }
   }
 
+  const queueLabel = user?.role === "manager"
+    ? "Floor publish requests from your team, and your company promotion requests."
+    : "Company promotion requests from your floor.";
+
   return (
     <div className={styles.page}>
       <div className={styles.pageHeader}>
         <div>
           <h1 className={styles.pageTitle}>Approval Queue</h1>
-          <p className={styles.pageSubtitle}>Review pending general vault files.</p>
+          <p className={styles.pageSubtitle}>{queueLabel}</p>
         </div>
         <button className={styles.secondaryButton} type="button" onClick={() => token && load(token, page)}>
           <RefreshCw size={14} /> Refresh
@@ -126,61 +128,70 @@ export function ApprovalQueue() {
         </div>
       )}
 
-      {!loading && files.length === 0 && (
+      {!loading && requests.length === 0 && (
         <div className={styles.empty}>
           <CheckCircle2 size={32} className={styles.emptyIcon} />
           <p className={styles.emptyTitle}>Queue is clear</p>
-          <p className={styles.emptyText}>No files are pending approval.</p>
+          <p className={styles.emptyText}>No pending publish requests.</p>
         </div>
       )}
 
-      {!loading && files.length > 0 && (
+      {!loading && requests.length > 0 && (
         <>
           <div className={styles.tableWrap}>
             <table className={styles.table}>
               <thead>
                 <tr>
                   <th>File</th>
-                  <th>Owner</th>
-                  <th>Size</th>
-                  <th>Uploaded</th>
+                  <th>Requester</th>
+                  <th>Target</th>
+                  <th>Requested</th>
                   <th>Actions</th>
                 </tr>
               </thead>
               <tbody>
-                {files.map((f) => {
-                  const busy = actionLoading === f.file_id;
+                {requests.map((req) => {
+                  const busy = actionLoading === req.request_id;
                   return (
-                    <tr key={f.file_id}>
+                    <tr key={req.request_id}>
                       <td className={styles.tdFile}>
                         <FileText size={14} className={styles.fileIcon} />
-                        <span>{f.original_name}</span>
+                        <span>{req.file_name}</span>
                       </td>
-                      <td className={styles.tdMuted}>{f.owner_name}</td>
-                      <td className={styles.tdMuted}>{fmtBytes(f.size_bytes)}</td>
-                      <td className={styles.tdMuted}>{fmtDate(f.created_at)}</td>
+                      <td className={styles.tdMuted}>{req.requester_name}</td>
                       <td>
-                        <div className={styles.actions}>
-                          <button
-                            className={`${styles.actionBtn} ${styles.approveBtn}`}
-                            type="button"
-                            title="Approve"
-                            disabled={busy}
-                            onClick={() => openNote(f.file_id, "approve")}
-                          >
-                            {busy ? <Loader2 size={14} className={styles.spinner} /> : <ThumbsUp size={14} />}
-                            Approve
-                          </button>
-                          <button
-                            className={`${styles.actionBtn} ${styles.rejectBtn}`}
-                            type="button"
-                            title="Reject"
-                            disabled={busy}
-                            onClick={() => openNote(f.file_id, "reject")}
-                          >
-                            <ThumbsDown size={14} /> Reject
-                          </button>
-                        </div>
+                        <span className={req.target === "company" ? styles.tagCompany : styles.tagFloor}>
+                          <Building2 size={11} style={{ marginRight: 4 }} />
+                          {TARGET_LABEL[req.target] ?? req.target}
+                        </span>
+                      </td>
+                      <td className={styles.tdMuted}>{fmtDate(req.created_at)}</td>
+                      <td>
+                        {req.target === "company" && req.requester_user_id === me?.user_id ? (
+                          <span className={styles.pendingAdminTag}>Awaiting admin</span>
+                        ) : (
+                          <div className={styles.actions}>
+                            <button
+                              className={`${styles.actionBtn} ${styles.approveBtn}`}
+                              type="button"
+                              title="Approve"
+                              disabled={busy}
+                              onClick={() => openNote(req.request_id, "approve")}
+                            >
+                              {busy ? <Loader2 size={14} className={styles.spinner} /> : <ThumbsUp size={14} />}
+                              Approve
+                            </button>
+                            <button
+                              className={`${styles.actionBtn} ${styles.rejectBtn}`}
+                              type="button"
+                              title="Reject"
+                              disabled={busy}
+                              onClick={() => openNote(req.request_id, "reject")}
+                            >
+                              <ThumbsDown size={14} /> Reject
+                            </button>
+                          </div>
+                        )}
                       </td>
                     </tr>
                   );
@@ -207,7 +218,7 @@ export function ApprovalQueue() {
         <div className={styles.modalBackdrop}>
           <div className={styles.modal}>
             <h2 className={styles.modalTitle}>
-              {noteModal.action === "approve" ? "Approve file" : "Reject file"}
+              {noteModal.action === "approve" ? "Approve request" : "Reject request"}
             </h2>
             <p className={styles.modalText}>Add an optional note for this decision.</p>
             <textarea

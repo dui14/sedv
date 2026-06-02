@@ -5,6 +5,7 @@ import { useEffect, useState } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import {
   BarChart3,
+  Building2,
   ClipboardCheck,
   Files,
   History,
@@ -30,24 +31,25 @@ type NavItem = {
   label: string;
   Icon: LucideIcon;
   roles: AuthUser["role"][];
-  badge?: string;
 };
 
 const NAV: NavItem[] = [
-  { href: "/dashboard", label: "Vault", Icon: Files, roles: ["admin", "manager", "user"] },
+  { href: "/dashboard", label: "Vault", Icon: Files, roles: ["company", "admin", "manager", "user"] },
   { href: "/approvals", label: "Approval Queue", Icon: ClipboardCheck, roles: ["admin", "manager"] },
-  { href: "/users", label: "Users", Icon: Users, roles: ["admin"] },
-  { href: "/audit-log", label: "Audit Log", Icon: BarChart3, roles: ["admin", "manager"] },
+  { href: "/users", label: "Users", Icon: Users, roles: ["company", "admin"] },
+  { href: "/audit-log", label: "Audit Log", Icon: BarChart3, roles: ["company", "admin", "manager"] },
   { href: "/activity", label: "My Activity", Icon: History, roles: ["user"] },
 ];
 
 const ROLE_LABEL: Record<AuthUser["role"], string> = {
+  company: "Company",
   admin: "Admin",
   manager: "Manager",
   user: "User",
 };
 
 const ROLE_COLOR: Record<AuthUser["role"], string> = {
+  company: styles.roleCompany,
   admin: styles.roleAdmin,
   manager: styles.roleManager,
   user: styles.roleUser,
@@ -113,6 +115,12 @@ export function AppShell({ children }: { children: ReactNode }) {
           <div className={styles.userInfo}>
             <p className={styles.userName}>{user.full_name}</p>
             <p className={styles.userEmail}>{user.email}</p>
+            {user.floor_name && (
+              <p className={styles.userFloor}>
+                <Building2 size={11} />
+                {user.floor_name}
+              </p>
+            )}
           </div>
           <span className={`${styles.roleBadge} ${ROLE_COLOR[user.role]}`}>
             {ROLE_LABEL[user.role]}

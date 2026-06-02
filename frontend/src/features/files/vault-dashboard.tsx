@@ -146,7 +146,11 @@ export function VaultDashboard() {
 		if (!token) return;
 		setActionLoading(file.file_id);
 		try {
-			await apiRequest(`/api/files/${file.file_id}/request-publish`, { method: "POST", headers: authHeaders(token) });
+			await apiRequest(`/api/files/${file.file_id}/request-publish`, {
+				method: "POST",
+				headers: { ...authHeaders(token), "Content-Type": "application/json" },
+				body: JSON.stringify({ target: "floor" }),
+			});
 			setSuccessMsg(`Publish request submitted for ${file.original_name}.`);
 			await loadFiles(token, page, submitted);
 		} catch (err) {
@@ -281,8 +285,8 @@ export function VaultDashboard() {
 												<span>{file.original_name}</span>
 											</td>
 											<td>
-												<span className={file.vault_type === "private" ? styles.tagPrivate : styles.tagGeneral}>
-													{file.vault_type === "private" ? "Private" : "General"}
+												<span className={file.vault_type === "private" ? styles.tagPrivate : file.vault_type === "company" ? styles.tagCompany : styles.tagGeneral}>
+													{file.vault_type === "private" ? "Private" : file.vault_type === "company" ? "Company" : "Floor"}
 												</span>
 											</td>
 											<td>

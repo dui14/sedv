@@ -3,8 +3,8 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import {
-  CheckCircle2, ChevronLeft, ChevronRight, CircleAlert, Download,
-  FileText, Globe, Loader2, RefreshCw, Search, Upload,
+  Building2, CheckCircle2, ChevronLeft, ChevronRight, CircleAlert,
+  Download, FileText, Loader2, RefreshCw, Search, TrendingUp, Upload,
 } from "lucide-react";
 
 import { apiRequest, authHeaders, buildApiUrl } from "../../lib/api";
@@ -25,11 +25,16 @@ function fmtDate(s: string) {
 
 const STATUS_LABEL: Record<string, string> = { pending: "Pending", published: "Published", rejected: "Rejected" };
 const STATUS_CLS: Record<string, string> = { pending: styles.tagPending, published: styles.tagPublished, rejected: styles.tagRejected };
+const VAULT_LABEL: Record<string, string> = { floor: "Floor", company: "Company" };
+const VAULT_CLS: Record<string, string> = { floor: styles.tagFloor, company: styles.tagCompany };
+
+type Tab = "floor" | "company";
 
 export function GeneralVault() {
   const router = useRouter();
   const [user, setUser] = useState<AuthUser | null>(null);
   const [token, setToken] = useState<string | null>(null);
+  const [tab, setTab] = useState<Tab>("floor");
   const [files, setFiles] = useState<FileItem[]>([]);
   const [total, setTotal] = useState(0);
   const [page, setPage] = useState(1);
@@ -40,6 +45,8 @@ export function GeneralVault() {
   const [success, setSuccess] = useState<string | null>(null);
   const [uploadOpen, setUploadOpen] = useState(false);
   const [actionLoading, setActionLoading] = useState<string | null>(null);
+  const [promoteLoading, setPromoteLoading] = useState<string | null>(null);
+  const [promoteSuccess, setPromoteSuccess] = useState<string | null>(null);
   const PAGE_SIZE = 15;
   const totalPages = Math.max(1, Math.ceil(total / PAGE_SIZE));
 
@@ -48,13 +55,13 @@ export function GeneralVault() {
     if (!t) { router.replace("/login"); return; }
     setToken(t);
     apiRequest<AuthUser>("/api/auth/me", { headers: authHeaders(t) })
-      .then((u) => { setUser(u); return load(t, 1, ""); })
+      .then((u) => { setUser(u); return load(t, 1, "", tab); })
       .catch(() => router.replace("/login"));
   }, [router]);
 
-  async function load(t: string, p: number, s: string) {
+  async function load(t: string, p: number, s: string, vaultTab: Tab) {
     setLoading(true); setError(null);
-    const params = new URLSearchParams({ page: String(p), page_size: String(PAGE_SIZE), vault_type: "general" });
+    const params = new URLSearchParams({ page: String(p), page_size: String(PAGE_SIZE), vault_type: vaultTab });
     if (s.trim()) params.set("search", s.trim());
     try {
       const data = await apiRequest<FileListResponse>(`/api/files?${params}`, { headers: authHeaders(t) });
@@ -64,6 +71,14 @@ export function GeneralVault() {
     } finally {
       setLoading(false);
     }
+  }
+
+  function switchTab(t: Tab) {
+    setTab(t);
+    setPage(1);
+    setSearch("");
+    setSubmitted("");
+    if (token) void load(token, 1, "", t);
   }
 
   async function handleDownload(file: FileItem) {
@@ -84,37 +99,75 @@ export function GeneralVault() {
     }
   }
 
+  async function handlePromoteToCompany(file: FileItem) {
+    if (!token) return;
+    setPromoteLoading(file.file_id);
+    setPromoteSuccess(null);
+    try {
+      await apiRequest(`/api/files/${file.file_id}/request-publish`, {
+        method: "POST",
+        headers: { ...authHeaders(token), "Content-Type": "application/json" },
+        body: JSON.stringify({ target: "company" }),
+      });
+      setPromoteSuccess(`Promotion request submitted for ${file.original_name} — awaiting admin approval.`);
+      if (token) void load(token, page, submitted, tab);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Promote request failed.");
+    } finally {
+      setPromoteLoading(null);
+    }
+  }
+
   function handleSearch(e: React.FormEvent) {
     e.preventDefault();
     if (!token) return;
-    setSubmitted(search.trim()); void load(token, 1, search.trim());
+    setSubmitted(search.trim()); void load(token, 1, search.trim(), tab);
   }
 
-  const canSeeAll = user?.role === "admin" || user?.role === "manager";
+  const canSeeAll = user?.role === "admin" || user?.role === "manager" || user?.role === "company";
 
   return (
     <div className={styles.page}>
       <div className={styles.pageHeader}>
         <div className={styles.titleRow}>
-          <Globe size={20} className={styles.titleIcon} />
+          <Building2 size={20} className={styles.titleIcon} />
           <div>
-            <h1 className={styles.pageTitle}>General Vault</h1>
+            <h1 className={styles.pageTitle}>Shared Vault</h1>
             <p className={styles.pageSubtitle}>
-              {canSeeAll ? "All general vault files (any status)." : "Published files available to your organization."}
+              {canSeeAll ? "All shared files (any status)." : "Published files shared with your floor or company."}
             </p>
           </div>
         </div>
         <div className={styles.headerActions}>
-          <button className={styles.secondaryButton} type="button" onClick={() => token && load(token, page, submitted)}>
+          <button className={styles.secondaryButton} type="button" onClick={() => token && load(token, page, submitted, tab)}>
             <RefreshCw size={14} /> Refresh
           </button>
-          <button className={styles.primaryButton} type="button" onClick={() => setUploadOpen(true)}>
-            <Upload size={14} /> Upload
-          </button>
+          {user?.role !== "user" && (
+            <button className={styles.primaryButton} type="button" onClick={() => setUploadOpen(true)}>
+              <Upload size={14} /> Upload
+            </button>
+          )}
         </div>
       </div>
 
-      {success && <div className={styles.successBanner} role="status"><CheckCircle2 size={15} /><span>{success}</span></div>}
+      <div className={styles.tabBar}>
+        <button
+          className={`${styles.tab} ${tab === "floor" ? styles.tabActive : ""}`}
+          type="button"
+          onClick={() => switchTab("floor")}
+        >
+          Floor Documents
+        </button>
+        <button
+          className={`${styles.tab} ${tab === "company" ? styles.tabActive : ""}`}
+          type="button"
+          onClick={() => switchTab("company")}
+        >
+          Company Documents
+        </button>
+      </div>
+
+      {(success || promoteSuccess) && <div className={styles.successBanner} role="status"><CheckCircle2 size={15} /><span>{promoteSuccess ?? success}</span></div>}
       {error && <div className={styles.errorBanner} role="alert"><CircleAlert size={15} /><span>{error}</span></div>}
 
       <form className={styles.searchBar} onSubmit={handleSearch}>
@@ -130,7 +183,7 @@ export function GeneralVault() {
         <div className={styles.empty}>
           <div className={styles.emptyIcon}><FileText size={24} /></div>
           <p className={styles.emptyTitle}>{submitted ? "No matching files" : "No files yet"}</p>
-          <p className={styles.emptyText}>{submitted ? "Try a different search term." : "Upload a file to the general vault."}</p>
+          <p className={styles.emptyText}>{submitted ? "Try a different search term." : `No ${tab} documents published yet.`}</p>
         </div>
       )}
 
@@ -141,6 +194,7 @@ export function GeneralVault() {
               <thead>
                 <tr>
                   <th>Name</th>
+                  <th>Scope</th>
                   <th>Status</th>
                   <th>Owner</th>
                   <th>Size</th>
@@ -155,16 +209,30 @@ export function GeneralVault() {
                   return (
                     <tr key={f.file_id}>
                       <td className={styles.tdFile}><FileText size={14} className={styles.fileIcon} /><span>{f.original_name}</span></td>
+                      <td><span className={VAULT_CLS[f.vault_type] ?? styles.tagNa}>{VAULT_LABEL[f.vault_type] ?? f.vault_type}</span></td>
                       <td><span className={STATUS_CLS[f.publish_status] ?? styles.tagNa}>{STATUS_LABEL[f.publish_status] ?? f.publish_status}</span></td>
                       <td className={styles.tdMuted}>{f.owner_name}</td>
                       <td className={styles.tdMuted}>{fmtBytes(f.size_bytes)}</td>
                       <td className={styles.tdMuted}>{fmtDate(f.created_at)}</td>
                       <td>
-                        {canDownload && (
-                          <button className={styles.iconBtn} type="button" title="Download" disabled={busy} onClick={() => handleDownload(f)}>
-                            {busy ? <Loader2 size={14} className={styles.spinner} /> : <Download size={14} />}
-                          </button>
-                        )}
+                        <div className={styles.actions}>
+                          {canDownload && (
+                            <button className={styles.iconBtn} type="button" title="Download" disabled={busy} onClick={() => handleDownload(f)}>
+                              {busy ? <Loader2 size={14} className={styles.spinner} /> : <Download size={14} />}
+                            </button>
+                          )}
+                          {user?.role === "manager" && f.vault_type === "floor" && f.publish_status === "published" && (
+                            <button
+                              className={`${styles.iconBtn} ${styles.promoteBtn}`}
+                              type="button"
+                              title="Request promote to Company vault"
+                              disabled={promoteLoading === f.file_id}
+                              onClick={() => handlePromoteToCompany(f)}
+                            >
+                              {promoteLoading === f.file_id ? <Loader2 size={14} className={styles.spinner} /> : <TrendingUp size={14} />}
+                            </button>
+                          )}
+                        </div>
                       </td>
                     </tr>
                   );
@@ -174,11 +242,11 @@ export function GeneralVault() {
           </div>
           {totalPages > 1 && (
             <div className={styles.pagination}>
-              <button className={styles.secondaryButton} type="button" disabled={page <= 1} onClick={() => token && load(token, page - 1, submitted)}>
+              <button className={styles.secondaryButton} type="button" disabled={page <= 1} onClick={() => token && load(token, page - 1, submitted, tab)}>
                 <ChevronLeft size={14} /> Previous
               </button>
               <span className={styles.pageInfo}>Page {page} of {totalPages}</span>
-              <button className={styles.secondaryButton} type="button" disabled={page >= totalPages} onClick={() => token && load(token, page + 1, submitted)}>
+              <button className={styles.secondaryButton} type="button" disabled={page >= totalPages} onClick={() => token && load(token, page + 1, submitted, tab)}>
                 Next <ChevronRight size={14} />
               </button>
             </div>
@@ -186,12 +254,12 @@ export function GeneralVault() {
         </>
       )}
 
-      {uploadOpen && token && (
+      {uploadOpen && token && user && (
         <UploadModal
           token={token}
-          userRole={user?.role ?? "user"}
+          userRole={user.role}
           onClose={() => setUploadOpen(false)}
-          onUploaded={(f) => { setUploadOpen(false); setSuccess(`Uploaded ${f.original_name}.`); if (token) void load(token, 1, submitted); }}
+          onUploaded={(f) => { setUploadOpen(false); setSuccess(`Uploaded ${f.original_name}.`); if (token) void load(token, 1, submitted, tab); }}
         />
       )}
     </div>

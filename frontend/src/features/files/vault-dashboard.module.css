@@ -292,6 +292,7 @@
 }
 
 .tagGeneral,
+.tagCompany,
 .tagPrivate,
 .tagPending,
 .tagPublished,
@@ -311,6 +312,12 @@
   background: rgba(56, 189, 248, 0.1);
   color: #38bdf8;
   border: 1px solid rgba(56, 189, 248, 0.2);
+}
+
+.tagCompany {
+  background: rgba(139, 92, 246, 0.1);
+  color: #8b5cf6;
+  border: 1px solid rgba(139, 92, 246, 0.2);
 }
 
 .tagPrivate {

@@ -11,8 +11,13 @@ export type AuthUser = {
 	organization_id: string;
 	email: string;
 	full_name: string;
-	role: "admin" | "manager" | "user";
+	role: "company" | "admin" | "manager" | "user";
 	status: "active" | "disabled" | "pending";
+	floor_id: string | null;
+	floor_name: string | null;
+	pending_floor_id: string | null;
+	pending_floor_name: string | null;
+	manager_id: string | null;
 	last_login_at: string | null;
 	created_at: string;
 	updated_at: string;
@@ -36,8 +41,9 @@ export type FileItem = {
 	size_bytes: number;
 	sha256: string;
 	encryption_algorithm: "AES-256-GCM";
-	vault_type: "general" | "private";
+	vault_type: "floor" | "company" | "private";
 	publish_status: "pending" | "published" | "rejected" | "na";
+	floor_id: string | null;
 	reviewed_by_user_id: string | null;
 	reviewed_at: string | null;
 	review_note: string | null;
@@ -86,6 +92,7 @@ export type PublishRequestItem = {
 	file_name: string;
 	requester_user_id: string;
 	requester_name: string;
+	target: "floor" | "company";
 	status: "pending" | "approved" | "rejected";
 	reviewed_by_user_id: string | null;
 	reviewed_at: string | null;
@@ -104,11 +111,27 @@ export type UserItem = {
 	organization_id: string;
 	email: string;
 	full_name: string;
-	role: "admin" | "manager" | "user";
+	role: "company" | "admin" | "manager" | "user";
 	status: "active" | "disabled" | "pending";
+	floor_id: string | null;
+	floor_name: string | null;
+	pending_floor_id: string | null;
+	pending_floor_name: string | null;
+	manager_id: string | null;
 	last_login_at: string | null;
 	created_at: string;
 	updated_at: string;
+};
+
+export type FloorItem = {
+	floor_id: string;
+	organization_id: string;
+	name: string;
+	slug: string;
+};
+
+export type FloorListResponse = {
+	items: FloorItem[];
 };
 
 export type UserListResponse = {

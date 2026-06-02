@@ -20,7 +20,7 @@ import styles from "./upload-modal.module.css";
 
 type Props = {
   token: string;
-  userRole: "admin" | "manager" | "user";
+  userRole: "company" | "admin" | "manager" | "user";
   onClose: () => void;
   onUploaded: (file: FileItem) => void;
 };
@@ -35,22 +35,23 @@ export function UploadModal({ token, userRole, onClose, onUploaded }: Props) {
   const inputRef = useRef<HTMLInputElement | null>(null);
   const [dragActive, setDragActive] = useState(false);
   const [file, setFile] = useState<File | null>(null);
-  const [vaultType, setVaultType] = useState<"general" | "private">("general");
-  const [status, setStatus] = useState<"idle" | "uploading" | "error" | "done">("idle");
+  const [vaultType, setVaultType] = useState<"floor" | "company" | "private">("floor");
+  const [uploadStatus, setUploadStatus] = useState<"idle" | "uploading" | "error" | "done">("idle");
   const [error, setError] = useState<string | null>(null);
-  const busy = status === "uploading";
+  const busy = uploadStatus === "uploading";
+  const isPrivileged = userRole !== "user";
 
   function pick(f: File | null | undefined) {
     if (!f) return;
     setFile(f);
     setError(null);
-    setStatus("idle");
+    setUploadStatus("idle");
   }
 
   async function handleSubmit(e: FormEvent<HTMLFormElement>) {
     e.preventDefault();
     if (!file || busy) return;
-    setStatus("uploading");
+    setUploadStatus("uploading");
     setError(null);
     const form = new FormData();
     form.append("uploaded_file", file);
@@ -66,11 +67,11 @@ export function UploadModal({ token, userRole, onClose, onUploaded }: Props) {
         const err = data?.error;
         throw new ApiClientError(err?.message ?? "Upload failed.", err?.code ?? "upload_failed", res.status);
       }
-      setStatus("done");
+      setUploadStatus("done");
       onUploaded(data as FileItem);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Upload failed.");
-      setStatus("error");
+      setUploadStatus("error");
     }
   }
 
@@ -119,21 +120,41 @@ export function UploadModal({ token, userRole, onClose, onUploaded }: Props) {
           <div className={styles.vaultSelect}>
             <p className={styles.vaultLabel}>Destination vault</p>
             <div className={styles.vaultOptions}>
-              <label className={`${styles.vaultOption} ${vaultType === "general" ? styles.vaultOptionActive : ""}`}>
+              <label className={`${styles.vaultOption} ${vaultType === "floor" ? styles.vaultOptionActive : ""}`}>
                 <input
                   type="radio"
                   name="vault_type"
-                  value="general"
+                  value="floor"
                   className={styles.hiddenInput}
-                  checked={vaultType === "general"}
-                  onChange={() => setVaultType("general")}
+                  checked={vaultType === "floor"}
+                  onChange={() => setVaultType("floor")}
                 />
                 <Globe size={16} />
                 <div>
-                  <p className={styles.vaultOptionName}>General Vault</p>
-                  <p className={styles.vaultOptionDesc}>Requires manager approval to publish</p>
+                  <p className={styles.vaultOptionName}>Floor Vault</p>
+                  <p className={styles.vaultOptionDesc}>
+                    {isPrivileged ? "Visible to all floor members (auto-published)" : "Requires manager approval before visible"}
+                  </p>
                 </div>
               </label>
+
+              {isPrivileged && (
+                <label className={`${styles.vaultOption} ${vaultType === "company" ? styles.vaultOptionActive : ""}`}>
+                  <input
+                    type="radio"
+                    name="vault_type"
+                    value="company"
+                    className={styles.hiddenInput}
+                    checked={vaultType === "company"}
+                    onChange={() => setVaultType("company")}
+                  />
+                  <Globe size={16} />
+                  <div>
+                    <p className={styles.vaultOptionName}>Company Vault</p>
+                    <p className={styles.vaultOptionDesc}>Visible to all floors company-wide (auto-published)</p>
+                  </div>
+                </label>
+              )}
 
               <label className={`${styles.vaultOption} ${vaultType === "private" ? styles.vaultOptionActive : ""}`}>
                 <input
@@ -147,20 +168,20 @@ export function UploadModal({ token, userRole, onClose, onUploaded }: Props) {
                 <FolderLock size={16} />
                 <div>
                   <p className={styles.vaultOptionName}>Private Vault</p>
-                  <p className={styles.vaultOptionDesc}>Only visible to you (and admin)</p>
+                  <p className={styles.vaultOptionDesc}>Only visible to you — request publish to share</p>
                 </div>
               </label>
             </div>
           </div>
 
-          {status === "error" && error && (
+          {uploadStatus === "error" && error && (
             <div className={styles.errorBanner} role="alert">
               <AlertCircle size={15} />
               <span>{error}</span>
             </div>
           )}
 
-          {status === "done" && (
+          {uploadStatus === "done" && (
             <div className={styles.successBanner} role="status">
               <CheckCircle2 size={15} />
               <span>File uploaded and encrypted successfully.</span>

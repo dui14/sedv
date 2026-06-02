@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import {
   ChevronLeft, ChevronRight, CircleAlert, Download, FileText, FolderLock,
-  Loader2, RefreshCw, Trash2, Upload,
+  Loader2, RefreshCw, Trash2, Upload, X,
 } from "lucide-react";
 
 import { apiRequest, authHeaders, buildApiUrl } from "../../lib/api";
@@ -35,6 +35,7 @@ export function PrivateVault() {
   const [success, setSuccess] = useState<string | null>(null);
   const [uploadOpen, setUploadOpen] = useState(false);
   const [actionLoading, setActionLoading] = useState<string | null>(null);
+  const [publishModal, setPublishModal] = useState<{ file: FileItem } | null>(null);
   const PAGE_SIZE = 15;
   const totalPages = Math.max(1, Math.ceil(total / PAGE_SIZE));
 
@@ -45,7 +46,6 @@ export function PrivateVault() {
     apiRequest<AuthUser>("/api/auth/me", { headers: authHeaders(t) })
       .then((u) => {
         setUser(u);
-        if (u.role !== "user") { router.replace("/dashboard"); return; }
         return load(t, 1);
       })
       .catch(() => router.replace("/login"));
@@ -96,12 +96,19 @@ export function PrivateVault() {
     }
   }
 
-  async function handleRequestPublish(file: FileItem) {
-    if (!token) return;
+  async function handleRequestPublish() {
+    if (!token || !publishModal) return;
+    const { file } = publishModal;
+    setPublishModal(null);
     setActionLoading(file.file_id);
     try {
-      await apiRequest(`/api/files/${file.file_id}/request-publish`, { method: "POST", headers: authHeaders(token) });
-      setSuccess(`Publish request submitted for ${file.original_name}.`);
+      await apiRequest(`/api/files/${file.file_id}/request-publish`, {
+        method: "POST",
+        headers: { ...authHeaders(token), "Content-Type": "application/json" },
+        body: JSON.stringify({ target: "floor" }),
+      });
+      setSuccess(`Publish request submitted for ${file.original_name} — awaiting manager approval.`);
+      if (token) await load(token, page);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Request failed.");
     } finally {
@@ -116,7 +123,7 @@ export function PrivateVault() {
           <FolderLock size={20} className={styles.titleIconPrivate} />
           <div>
             <h1 className={styles.pageTitle}>Private Vault</h1>
-            <p className={styles.pageSubtitle}>Only you can see these files. Request publish to share with the company.</p>
+            <p className={styles.pageSubtitle}>Only you can see these files. Request publish to share.</p>
           </div>
         </div>
         <div className={styles.headerActions}>
@@ -137,7 +144,7 @@ export function PrivateVault() {
         <div className={styles.empty}>
           <div className={styles.emptyIcon}><FolderLock size={24} /></div>
           <p className={styles.emptyTitle}>No private files</p>
-          <p className={styles.emptyText}>Upload files here to keep them private.</p>
+          <p className={styles.emptyText}>Upload files here to keep them private, then request to share.</p>
         </div>
       )}
 
@@ -151,6 +158,7 @@ export function PrivateVault() {
               <tbody>
                 {files.map((f) => {
                   const busy = actionLoading === f.file_id;
+                  const isPending = f.vault_type !== "private";
                   return (
                     <tr key={f.file_id}>
                       <td className={styles.tdFile}><FileText size={14} className={styles.fileIcon} /><span>{f.original_name}</span></td>
@@ -161,10 +169,12 @@ export function PrivateVault() {
                           <button className={styles.iconBtn} type="button" title="Download" disabled={busy} onClick={() => handleDownload(f)}>
                             {busy ? <Loader2 size={14} className={styles.spinner} /> : <Download size={14} />}
                           </button>
-                          <button className={`${styles.iconBtn} ${styles.publishBtn}`} type="button" title="Request publish" disabled={busy} onClick={() => handleRequestPublish(f)}>
-                            <Upload size={14} />
-                          </button>
-                          <button className={`${styles.iconBtn} ${styles.deleteBtn}`} type="button" title="Delete" disabled={busy} onClick={() => handleDelete(f)}>
+                          {!isPending && user?.role === "user" && (
+                            <button className={`${styles.iconBtn} ${styles.publishBtn}`} type="button" title="Request publish to floor" disabled={busy} onClick={() => setPublishModal({ file: f })}>
+                              <Upload size={14} />
+                            </button>
+                          )}
+                          <button className={`${styles.iconBtn} ${styles.deleteBtn}`} type="button" title="Delete" disabled={busy || isPending} onClick={() => handleDelete(f)}>
                             <Trash2 size={14} />
                           </button>
                         </div>
@@ -189,13 +199,36 @@ export function PrivateVault() {
         </>
       )}
 
-      {uploadOpen && token && (
+      {uploadOpen && token && user && (
         <UploadModal
           token={token}
-          userRole="user"
+          userRole={user.role}
           onClose={() => setUploadOpen(false)}
           onUploaded={(f) => { setUploadOpen(false); setSuccess(`Uploaded ${f.original_name}.`); if (token) void load(token, 1); }}
         />
+      )}
+
+      {publishModal && (
+        <div className={styles.publishModalBackdrop}>
+          <div className={styles.publishModal}>
+            <div className={styles.publishModalHeader}>
+              <h2 className={styles.publishModalTitle}>Request publish to floor</h2>
+              <button className={styles.iconBtn} type="button" aria-label="Close" onClick={() => setPublishModal(null)}>
+                <X size={16} />
+              </button>
+            </div>
+            <p className={styles.publishModalFile}>{publishModal.file.original_name}</p>
+            <p className={styles.targetDesc} style={{ color: "#91a4c2", margin: 0, fontSize: 14 }}>
+              Your manager will review and approve this file. If approved, it will be visible to all members of your floor.
+            </p>
+            <div className={styles.publishModalActions}>
+              <button className={styles.secondaryButton} type="button" onClick={() => setPublishModal(null)}>Cancel</button>
+              <button className={styles.primaryButton} type="button" onClick={handleRequestPublish}>
+                <Upload size={14} /> Submit request
+              </button>
+            </div>
+          </div>
+        </div>
       )}
     </div>
   );

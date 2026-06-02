@@ -160,6 +160,16 @@
   text-overflow: ellipsis;
 }
 
+.userFloor {
+  margin: 2px 0 0;
+  font-family: "IBM Plex Sans", sans-serif;
+  font-size: 10px;
+  color: #3b7dd8;
+  display: flex;
+  align-items: center;
+  gap: 3px;
+}
+
 .roleBadge,
 .roleBadgeSmall {
   border-radius: 6px;
@@ -170,6 +180,12 @@
   text-transform: uppercase;
   padding: 2px 6px;
   flex-shrink: 0;
+}
+
+.roleCompany {
+  background: rgba(139, 92, 246, 0.15);
+  color: #8b5cf6;
+  border: 1px solid rgba(139, 92, 246, 0.25);
 }
 
 .roleAdmin {

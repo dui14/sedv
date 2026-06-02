@@ -24,10 +24,30 @@
 .table tr:last-child td { border-bottom: none; }
 .tdName { font-weight: 600; color: #f7faff !important; }
 .tdMuted { color: #91a4c2 !important; }
-.roleAdmin, .roleManager, .roleUser { display: inline-block; border-radius: 6px; padding: 2px 7px; font-family: "IBM Plex Sans", sans-serif; font-size: 12px; font-weight: 600; }
+.roleCompany, .roleAdmin, .roleManager, .roleUser { display: inline-block; border-radius: 6px; padding: 2px 7px; font-family: "IBM Plex Sans", sans-serif; font-size: 12px; font-weight: 600; }
+.roleCompany { background: rgba(139,92,246,0.1); color: #8b5cf6; border: 1px solid rgba(139,92,246,0.2); }
 .roleAdmin { background: rgba(240,82,82,0.1); color: #f05252; border: 1px solid rgba(240,82,82,0.2); }
 .roleManager { background: rgba(245,165,36,0.1); color: #f5a524; border: 1px solid rgba(245,165,36,0.2); }
 .roleUser { background: rgba(79,140,255,0.1); color: #4f8cff; border: 1px solid rgba(79,140,255,0.2); }
+.floorTag { display: inline-flex; align-items: center; gap: 4px; font-size: 12px; color: #38bdf8; }
+.pendingFloorTag { display: inline-flex; align-items: center; gap: 3px; font-size: 11px; color: #f5a524; margin-left: 6px; }
+.rowPending { background: rgba(245,165,36,0.03); }
+.transferSection { border: 1px solid rgba(245,165,36,0.25); border-radius: 12px; background: rgba(245,165,36,0.04); padding: 16px; display: flex; flex-direction: column; gap: 12px; }
+.transferTitle { margin: 0; font-family: "IBM Plex Sans", sans-serif; font-size: 14px; font-weight: 600; color: #f5a524; display: flex; align-items: center; gap: 8px; }
+.transferList { display: flex; flex-direction: column; gap: 8px; }
+.transferCard { display: flex; align-items: center; justify-content: space-between; gap: 16px; padding: 10px 14px; border-radius: 10px; background: #07111f; border: 1px solid #1a2b47; flex-wrap: wrap; }
+.transferInfo { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+.transferName { font-family: "IBM Plex Sans", sans-serif; font-size: 14px; font-weight: 600; color: #f7faff; }
+.transferEmail { font-family: "IBM Plex Sans", sans-serif; font-size: 13px; color: #4a5f7a; }
+.transferArrow { display: flex; align-items: center; gap: 5px; font-family: "IBM Plex Sans", sans-serif; font-size: 12px; color: #91a4c2; }
+.transferActions { display: flex; gap: 8px; }
+.actionBtn { display: inline-flex; align-items: center; gap: 6px; padding: 6px 12px; border-radius: 8px; font-family: "IBM Plex Sans", sans-serif; font-size: 12px; font-weight: 600; cursor: pointer; border: 1px solid transparent; transition: background 150ms; }
+.actionBtn:disabled { opacity: 0.4; cursor: not-allowed; }
+.approveBtn { background: rgba(46,204,113,0.1); border-color: rgba(46,204,113,0.25); color: #2ecc71; }
+.approveBtn:hover:not(:disabled) { background: rgba(46,204,113,0.2); }
+.rejectBtn { background: rgba(240,82,82,0.1); border-color: rgba(240,82,82,0.25); color: #f05252; }
+.rejectBtn:hover:not(:disabled) { background: rgba(240,82,82,0.2); }
+.fieldHint { margin: 4px 0 0; font-family: "IBM Plex Sans", sans-serif; font-size: 12px; color: #f5a524; }
 .statusActive, .statusDisabled, .statusPending { display: inline-block; border-radius: 6px; padding: 2px 7px; font-family: "IBM Plex Sans", sans-serif; font-size: 12px; font-weight: 500; }
 .statusActive { background: rgba(46,204,113,0.1); color: #2ecc71; border: 1px solid rgba(46,204,113,0.2); }
 .statusDisabled { background: rgba(145,164,194,0.1); color: #91a4c2; border: 1px solid rgba(145,164,194,0.2); }
