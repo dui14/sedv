@@ -111,7 +111,7 @@ Allow your computer to connect to the database:
 
 **Before** (example from Atlas):
 ```bash
-SEDV_MONGODB_URI=mongodb+srv://<username>:<password>@cluster0.xxxxx.mongodb.net/?retryWrites=true&w=majority
+SEDV_MONGODB_URI=mongodb+srv://...
 ```
 
 **After** (with your actual credentials):
