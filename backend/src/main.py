@@ -7,6 +7,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from .api.routes.auth import router as auth_router
 from .api.routes.audit import router as audit_router
 from .api.routes.files import router as files_router
+from .api.routes.floors import router as floors_router
 from .api.routes.health import router as health_router
 from .api.routes.users import router as users_router
 from .core.config.settings import get_settings
@@ -59,6 +60,7 @@ app.include_router(auth_router, prefix="/api")
 app.include_router(files_router, prefix="/api")
 app.include_router(audit_router, prefix="/api")
 app.include_router(users_router, prefix="/api")
+app.include_router(floors_router, prefix="/api")
 
 
 @app.on_event("shutdown")
