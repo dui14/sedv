@@ -1,50 +1,78 @@
-SEDV Demo User Accounts
-=======================
+Demo Accounts
+========================================
 Login URL: http://localhost:3000/login
+Organization: companyABC
 
-ADMIN (2 accounts)
-------------------
-admin1@company.com    / Admin@123
-admin2@company.com    / Admin@123
+ROLE PERMISSIONS QUICK REFERENCE
+----------------------------------
+Company  : CRUD Admin/Manager/User | all files system-wide | all audit logs | system settings
+Admin    : CRUD Manager/User in own Floor | all files in Floor | approve/reject | floor audit logs
+Manager  : approve publish requests | manage team files | read team users | team audit logs
+User     : CRUD own files | request publish | view published files | own activity log
 
-MANAGER (6 accounts)
---------------------
-manager1@company.com  / Manager@123
-manager2@company.com  / Manager@123
-manager3@company.com  / Manager@123
-manager4@company.com  / Manager@123
-manager5@company.com  / Manager@123
-manager6@company.com  / Manager@123
+HIERARCHY
+---------
+Company
+  Admin Floor 1 (Business Operations)
+    Sales Manager -> sales01-04
+    Ops Manager   -> ops01-04
+    Support Mgr   -> support01-04
+  Admin Floor 2 (Engineering)
+    Backend Mgr   -> backend01-04
+    Frontend Mgr  -> frontend01-04
+    Product Mgr   -> product01-04
 
-USER (24 accounts)
-------------------
-user1@company.com     / User@123
-user2@company.com     / User@123
-user3@company.com     / User@123
-user4@company.com     / User@123
-user5@company.com     / User@123
-user6@company.com     / User@123
-user7@company.com     / User@123
-user8@company.com     / User@123
-user9@company.com     / User@123
-user10@company.com    / User@123
-user11@company.com    / User@123
-user12@company.com    / User@123
-user13@company.com    / User@123
-user14@company.com    / User@123
-user15@company.com    / User@123
-user16@company.com    / User@123
-user17@company.com    / User@123
-user18@company.com    / User@123
-user19@company.com    / User@123
-user20@company.com    / User@123
-user21@company.com    / User@123
-user22@company.com    / User@123
-user23@company.com    / User@123
-user24@company.com    / User@123
+NOTE: Before re-seeding, drop the "users", "floors", and "data/encrypted" directory
+      to avoid duplicate key errors.
+      cd backend && python seed.py
 
-ROLE CAPABILITIES QUICK REFERENCE
------------------------------------
-Admin   : all files (vault & private), user CRUD, full audit log, file CRUD
-Manager : general vault (all statuses), approval queue, audit log (general only)
-User    : own private files, published general files, my activity, request publish
+--- COMPANY ---
+  [company ] company@companyabc.com                         pass: Company@123
+
+--- FLOOR 1: Business Operations ---
+  [admin   ] admin.biz@companyabc.com                       pass: Admin@123
+  [Floor 1 > Sales]
+  [manager ] sales.manager@companyabc.com                   pass: Manager@123
+  [user    ] sales01@companyabc.com                         pass: User@123
+  [user    ] sales02@companyabc.com                         pass: User@123
+  [user    ] sales03@companyabc.com                         pass: User@123
+  [user    ] sales04@companyabc.com                         pass: User@123
+  [Floor 1 > Operations]
+  [manager ] ops.manager@companyabc.com                     pass: Manager@123
+  [user    ] ops01@companyabc.com                           pass: User@123
+  [user    ] ops02@companyabc.com                           pass: User@123
+  [user    ] ops03@companyabc.com                           pass: User@123
+  [user    ] ops04@companyabc.com                           pass: User@123
+  [Floor 1 > Support]
+  [manager ] support.manager@companyabc.com                 pass: Manager@123
+  [user    ] support01@companyabc.com                       pass: User@123
+  [user    ] support02@companyabc.com                       pass: User@123
+  [user    ] support03@companyabc.com                       pass: User@123
+  [user    ] support04@companyabc.com                       pass: User@123
+
+--- FLOOR 2: Engineering ---
+  [admin   ] admin.eng@companyabc.com                       pass: Admin@123
+  [Floor 2 > Backend]
+  [manager ] backend.manager@companyabc.com                 pass: Manager@123
+  [user    ] backend01@companyabc.com                       pass: User@123
+  [user    ] backend02@companyabc.com                       pass: User@123
+  [user    ] backend03@companyabc.com                       pass: User@123
+  [user    ] backend04@companyabc.com                       pass: User@123
+  [Floor 2 > Frontend]
+  [manager ] frontend.manager@companyabc.com                pass: Manager@123
+  [user    ] frontend01@companyabc.com                      pass: User@123
+  [user    ] frontend02@companyabc.com                      pass: User@123
+  [user    ] frontend03@companyabc.com                      pass: User@123
+  [user    ] frontend04@companyabc.com                      pass: User@123
+  [Floor 2 > Product]
+  [manager ] product.manager@companyabc.com                 pass: Manager@123
+  [user    ] product01@companyabc.com                       pass: User@123
+  [user    ] product02@companyabc.com                       pass: User@123
+  [user    ] product03@companyabc.com                       pass: User@123
+  [user    ] product04@companyabc.com                       pass: User@123
+
+Seeded 33 accounts total.
+  - 1 company  (company@companyabc.com, Company@123)
+  - 2 admins   (admin.biz / admin.eng @companyabc.com, Admin@123)
+  - 6 managers (sales/ops/support/backend/frontend/product.manager@, Manager@123)
+  - 24 users   (sales01-04 / ops01-04 / support01-04 / backend01-04 / frontend01-04 / product01-04 @, User@123)
