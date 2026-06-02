@@ -36,6 +36,7 @@ def _file_to_document(record: FileRecord) -> dict:
 		"encryption_key_version": record.encryption_key_version,
 		"vault_type": record.vault_type,
 		"publish_status": record.publish_status,
+		"floor_id": record.floor_id,
 		"reviewed_by_user_id": record.reviewed_by_user_id,
 		"reviewed_at": record.reviewed_at,
 		"review_note": record.review_note,
@@ -61,8 +62,9 @@ def _file_from_document(document: dict) -> FileRecord:
 		encryption_algorithm=document["encryption_algorithm"],
 		encryption_iv=document["encryption_iv"],
 		encryption_key_version=document["encryption_key_version"],
-		vault_type=document.get("vault_type", "general"),
+		vault_type=document.get("vault_type", "floor"),
 		publish_status=document.get("publish_status", "published"),
+		floor_id=document.get("floor_id"),
 		reviewed_by_user_id=document.get("reviewed_by_user_id"),
 		reviewed_at=ensure_utc(document.get("reviewed_at")),
 		review_note=document.get("review_note"),
@@ -79,6 +81,7 @@ def _publish_request_from_document(document: dict) -> PublishRequestRecord:
 		organization_id=document["organization_id"],
 		file_id=document["file_id"],
 		requester_user_id=document["requester_user_id"],
+		target=document.get("target", "floor"),
 		status=document["status"],
 		reviewed_by_user_id=document.get("reviewed_by_user_id"),
 		reviewed_at=ensure_utc(document.get("reviewed_at")),
@@ -109,8 +112,10 @@ class FileRepository:
 		organization_id: str,
 		*,
 		owner_user_id: str | None = None,
+		owner_user_ids: list[str] | None = None,
 		vault_type: str | None = None,
 		publish_status: str | None = None,
+		floor_id: str | None = None,
 		search: str | None = None,
 		include_deleted: bool = False,
 	) -> list[FileRecord]:
@@ -120,10 +125,14 @@ class FileRepository:
 			query["status"] = "active"
 		if owner_user_id is not None:
 			query["owner_user_id"] = owner_user_id
+		if owner_user_ids is not None:
+			query["owner_user_id"] = {"$in": owner_user_ids}
 		if vault_type is not None:
 			query["vault_type"] = vault_type
 		if publish_status is not None:
 			query["publish_status"] = publish_status
+		if floor_id is not None:
+			query["floor_id"] = floor_id
 		if term:
 			pattern = re.compile(re.escape(term), re.IGNORECASE)
 			query["$or"] = [
@@ -143,26 +152,31 @@ class FileRepository:
 			raise NotFoundError(code="file_not_found", message="The requested file could not be found.")
 		return _file_from_document(document)
 
+	def hard_delete_file(self, file_id: str) -> None:
+		self._files.delete_one({"_id": file_id})
+
 	def update_publish_status(
 		self,
 		file_id: str,
 		*,
 		publish_status: str,
+		vault_type: str | None = None,
 		reviewed_by_user_id: str,
 		reviewed_at: datetime,
 		review_note: str | None,
 	) -> FileRecord:
+		fields = {
+			"publish_status": publish_status,
+			"reviewed_by_user_id": reviewed_by_user_id,
+			"reviewed_at": reviewed_at,
+			"review_note": review_note,
+			"updated_at": reviewed_at,
+		}
+		if vault_type is not None:
+			fields["vault_type"] = vault_type
 		document = self._files.find_one_and_update(
 			{"_id": file_id},
-			{
-				"$set": {
-					"publish_status": publish_status,
-					"reviewed_by_user_id": reviewed_by_user_id,
-					"reviewed_at": reviewed_at,
-					"review_note": review_note,
-					"updated_at": reviewed_at,
-				}
-			},
+			{"$set": fields},
 			return_document=ReturnDocument.AFTER,
 		)
 		if document is None:
@@ -186,6 +200,7 @@ class FileRepository:
 		organization_id: str,
 		file_id: str,
 		requester_user_id: str,
+		target: str,
 	) -> PublishRequestRecord:
 		now = now_utc()
 		document = {
@@ -193,6 +208,7 @@ class FileRepository:
 			"organization_id": organization_id,
 			"file_id": file_id,
 			"requester_user_id": requester_user_id,
+			"target": target,
 			"status": "pending",
 			"reviewed_by_user_id": None,
 			"reviewed_at": None,
@@ -216,10 +232,16 @@ class FileRepository:
 		organization_id: str,
 		*,
 		status: str | None = None,
+		target: str | None = None,
+		requester_user_ids: list[str] | None = None,
 	) -> list[PublishRequestRecord]:
 		query: dict = {"organization_id": organization_id}
 		if status is not None:
 			query["status"] = status
+		if target is not None:
+			query["target"] = target
+		if requester_user_ids is not None:
+			query["requester_user_id"] = {"$in": requester_user_ids}
 		return [_publish_request_from_document(d) for d in self._requests.find(query).sort("created_at", DESCENDING)]
 
 	def update_publish_request(

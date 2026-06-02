@@ -11,7 +11,7 @@ from ...utils.datetime import ensure_utc, now_utc
 from ...utils.errors import ConflictError, NotFoundError
 from ...utils.ids import new_id
 from .client import MongoDatabaseClient
-from .collections import AUTH_SESSIONS_COLLECTION, ORGANIZATIONS_COLLECTION, USERS_COLLECTION
+from .collections import AUTH_SESSIONS_COLLECTION, FLOORS_COLLECTION, ORGANIZATIONS_COLLECTION, USERS_COLLECTION
 
 try:
 	from pymongo import ReturnDocument
@@ -31,7 +31,7 @@ def _organization_from_document(document: dict) -> OrganizationRecord:
 	)
 
 
-def _user_from_document(document: dict) -> UserRecord:
+def _user_from_document(document: dict, floor_name: str | None = None, pending_floor_name: str | None = None) -> UserRecord:
 	return UserRecord(
 		user_id=str(document["_id"]),
 		organization_id=document["organization_id"],
@@ -43,6 +43,11 @@ def _user_from_document(document: dict) -> UserRecord:
 		last_login_at=ensure_utc(document.get("last_login_at")),
 		created_at=ensure_utc(document["created_at"]),
 		updated_at=ensure_utc(document["updated_at"]),
+		floor_id=document.get("floor_id"),
+		floor_name=floor_name,
+		pending_floor_id=document.get("pending_floor_id"),
+		pending_floor_name=pending_floor_name,
+		manager_id=document.get("manager_id"),
 	)
 
 
@@ -66,7 +71,9 @@ class AuthRepository:
         self._organizations = client.database[ORGANIZATIONS_COLLECTION]
         self._users = client.database[USERS_COLLECTION]
         self._sessions = client.database[AUTH_SESSIONS_COLLECTION]
+        self._floors = client.database[FLOORS_COLLECTION]
         self._demo_organization = self._ensure_demo_organization()
+        self._floor_name_cache: dict[str, str] = {}
 
     def _ensure_demo_organization(self) -> OrganizationRecord:
         existing = self._organizations.find_one({"slug": self._settings.demo_organization_slug})
@@ -91,13 +98,30 @@ class AuthRepository:
     def get_demo_organization(self) -> OrganizationRecord:
         return self._demo_organization
 
+    def get_floor_name(self, floor_id: str | None) -> str | None:
+        if floor_id is None:
+            return None
+        if floor_id in self._floor_name_cache:
+            return self._floor_name_cache[floor_id]
+        doc = self._floors.find_one({"_id": floor_id})
+        if doc is None:
+            return None
+        name = doc.get("name", floor_id)
+        self._floor_name_cache[floor_id] = name
+        return name
+
+    def _enrich_user(self, document: dict) -> UserRecord:
+        floor_name = self.get_floor_name(document.get("floor_id"))
+        pending_floor_name = self.get_floor_name(document.get("pending_floor_id"))
+        return _user_from_document(document, floor_name, pending_floor_name)
+
     def get_user_by_email(self, organization_id: str, email: str) -> UserRecord | None:
         document = self._users.find_one({"organization_id": organization_id, "email": email})
-        return _user_from_document(document) if document is not None else None
+        return self._enrich_user(document) if document is not None else None
 
     def get_user_by_id(self, user_id: str) -> UserRecord | None:
         document = self._users.find_one({"_id": user_id})
-        return _user_from_document(document) if document is not None else None
+        return self._enrich_user(document) if document is not None else None
 
     def create_user(
         self,
@@ -108,6 +132,8 @@ class AuthRepository:
         password_hash: str | None,
         role: str = "user",
         status: str = Status.ACTIVE.value,
+        floor_id: str | None = None,
+        manager_id: str | None = None,
     ) -> UserRecord:
         now = now_utc()
         document = {
@@ -118,6 +144,8 @@ class AuthRepository:
             "password_hash": password_hash,
             "role": role,
             "status": status,
+            "floor_id": floor_id,
+            "manager_id": manager_id,
             "last_login_at": None,
             "created_at": now,
             "updated_at": now,
@@ -126,7 +154,7 @@ class AuthRepository:
             self._users.insert_one(document)
         except DuplicateKeyError as exc:
             raise ConflictError(code="email_already_exists", message="A user with this email already exists.") from exc
-        return _user_from_document(document)
+        return self._enrich_user(document)
 
     def update_last_login(self, user_id: str, login_at: datetime) -> UserRecord:
         document = self._users.find_one_and_update(
@@ -136,7 +164,7 @@ class AuthRepository:
         )
         if document is None:
             raise NotFoundError(code="user_not_found", message="The requested user could not be found.")
-        return _user_from_document(document)
+        return self._enrich_user(document)
 
     def create_session(
         self,
@@ -184,6 +212,7 @@ class AuthRepository:
         role: str | None = None,
         status: str | None = None,
         search: str | None = None,
+        floor_id: str | None = None,
     ) -> list:
         import re as _re
         query: dict = {"organization_id": organization_id}
@@ -191,13 +220,27 @@ class AuthRepository:
             query["role"] = role
         if status is not None:
             query["status"] = status
+        if floor_id is not None:
+            query["floor_id"] = floor_id
         if search:
             pattern = _re.compile(_re.escape(search), _re.IGNORECASE)
             query["$or"] = [
                 {"full_name": pattern},
                 {"email": pattern},
             ]
-        return [_user_from_document(d) for d in self._users.find(query).sort("created_at", -1)]
+        return [self._enrich_user(d) for d in self._users.find(query).sort("created_at", -1)]
+
+    def list_users_by_manager_id(self, organization_id: str, manager_id: str) -> list[UserRecord]:
+        return [
+            self._enrich_user(d)
+            for d in self._users.find({"organization_id": organization_id, "manager_id": manager_id})
+        ]
+
+    def list_user_ids_by_floor(self, organization_id: str, floor_id: str) -> list[str]:
+        return [
+            str(d["_id"])
+            for d in self._users.find({"organization_id": organization_id, "floor_id": floor_id}, {"_id": 1})
+        ]
 
     def update_user(
         self,
@@ -230,7 +273,68 @@ class AuthRepository:
             raise ConflictError(code="email_already_exists", message="A user with this email already exists.") from exc
         if document is None:
             raise NotFoundError(code="user_not_found", message="The requested user could not be found.")
-        return _user_from_document(document)
+        return self._enrich_user(document)
+
+    def initiate_floor_transfer(self, user_id: str, pending_floor_id: str) -> UserRecord:
+        document = self._users.find_one_and_update(
+            {"_id": user_id},
+            {"$set": {"pending_floor_id": pending_floor_id, "status": "pending", "updated_at": now_utc()}},
+            return_document=ReturnDocument.AFTER,
+        )
+        if document is None:
+            raise NotFoundError(code="user_not_found", message="The requested user could not be found.")
+        return self._enrich_user(document)
+
+    def approve_floor_transfer(self, user_id: str) -> UserRecord:
+        user_doc = self._users.find_one({"_id": user_id})
+        if user_doc is None:
+            raise NotFoundError(code="user_not_found", message="The requested user could not be found.")
+        pending_floor_id = user_doc.get("pending_floor_id")
+        if not pending_floor_id:
+            raise NotFoundError(code="no_pending_transfer", message="No pending floor transfer for this user.")
+        document = self._users.find_one_and_update(
+            {"_id": user_id},
+            {"$set": {"floor_id": pending_floor_id, "pending_floor_id": None, "status": "active", "updated_at": now_utc()}},
+            return_document=ReturnDocument.AFTER,
+        )
+        if document is None:
+            raise NotFoundError(code="user_not_found", message="The requested user could not be found.")
+        return self._enrich_user(document)
+
+    def reject_floor_transfer(self, user_id: str) -> UserRecord:
+        document = self._users.find_one_and_update(
+            {"_id": user_id},
+            {"$set": {"pending_floor_id": None, "status": "active", "updated_at": now_utc()}},
+            return_document=ReturnDocument.AFTER,
+        )
+        if document is None:
+            raise NotFoundError(code="user_not_found", message="The requested user could not be found.")
+        return self._enrich_user(document)
+
+    def list_pending_transfers(self, organization_id: str, floor_id: str) -> list[UserRecord]:
+        return [
+            self._enrich_user(d)
+            for d in self._users.find({
+                "organization_id": organization_id,
+                "pending_floor_id": floor_id,
+                "status": "pending",
+            })
+        ]
+
+    def list_floors(self, organization_id: str) -> list:
+        from ...domain.entities.floor import FloorRecord
+        docs = self._floors.find({"organization_id": organization_id}).sort("name", 1)
+        return [
+            FloorRecord(
+                floor_id=str(d["_id"]),
+                organization_id=d["organization_id"],
+                name=d["name"],
+                slug=d["slug"],
+                created_at=ensure_utc(d["created_at"]),
+                updated_at=ensure_utc(d["updated_at"]),
+            )
+            for d in docs
+        ]
 
     def delete_user(self, user_id: str) -> None:
         result = self._users.delete_one({"_id": user_id})

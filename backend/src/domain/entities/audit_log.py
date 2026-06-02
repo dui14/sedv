@@ -17,3 +17,4 @@ class AuditLogRecord:
 	ip_address: str | None
 	user_agent: str | None
 	created_at: datetime
+	floor_id: str | None = None

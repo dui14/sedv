@@ -30,6 +30,11 @@ class AuditService:
 		user_agent: str | None = None,
 		created_at: datetime | None = None,
 	) -> AuditLogRecord:
+		floor_id: str | None = None
+		if self._auth_repository is not None:
+			actor = self._auth_repository.get_user_by_id(actor_user_id)
+			if actor is not None:
+				floor_id = actor.floor_id
 		record = AuditLogRecord(
 			audit_id=new_id(),
 			organization_id=organization_id,
@@ -42,6 +47,7 @@ class AuditService:
 			ip_address=ip_address,
 			user_agent=user_agent,
 			created_at=created_at or now_utc(),
+			floor_id=floor_id,
 		)
 		return self._repository.append(record)
 
@@ -59,25 +65,48 @@ class AuditService:
 		term = validate_search_term(search)
 		role = context.user.role
 
-		scoped_actor_user_id: str | None = None
-		general_only = False
-
-		if role == Role.ADMIN.value:
-			scoped_actor_user_id = actor_filter
+		if role == Role.COMPANY.value:
+			records = self._repository.list_logs(
+				context.user.organization_id,
+				actor_user_id=actor_filter,
+				action=action.strip() if action else None,
+				result=result.strip() if result else None,
+				search=term,
+			)
+		elif role == Role.ADMIN.value:
+			records = self._repository.list_logs(
+				context.user.organization_id,
+				floor_id=context.user.floor_id,
+				actor_user_id=actor_filter,
+				action=action.strip() if action else None,
+				result=result.strip() if result else None,
+				search=term,
+			)
 		elif role == Role.MANAGER.value:
-			general_only = True
-			scoped_actor_user_id = actor_filter
+			team_ids: list[str] = []
+			if self._auth_repository is not None:
+				team_members = self._auth_repository.list_users_by_manager_id(
+					context.user.organization_id, context.user.user_id
+				)
+				team_ids = [m.user_id for m in team_members]
+				team_ids.append(context.user.user_id)
+			records = self._repository.list_logs(
+				context.user.organization_id,
+				actor_user_ids=team_ids if not actor_filter else None,
+				actor_user_id=actor_filter if actor_filter else None,
+				action=action.strip() if action else None,
+				result=result.strip() if result else None,
+				search=term,
+			)
 		else:
-			scoped_actor_user_id = context.user.user_id
+			records = self._repository.list_logs(
+				context.user.organization_id,
+				actor_user_id=context.user.user_id,
+				action=action.strip() if action else None,
+				result=result.strip() if result else None,
+				search=term,
+			)
 
-		records = self._repository.list_logs(
-			context.user.organization_id,
-			actor_user_id=scoped_actor_user_id,
-			action=action.strip() if action else None,
-			result=result.strip() if result else None,
-			search=term,
-			general_only=general_only,
-		)
 		total = len(records)
 		start = (page - 1) * page_size
 		end = start + page_size
