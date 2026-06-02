@@ -15,6 +15,11 @@ class UserItemResponse(BaseModel):
 	full_name: str
 	role: str
 	status: str
+	floor_id: str | None = None
+	floor_name: str | None = None
+	pending_floor_id: str | None = None
+	pending_floor_name: str | None = None
+	manager_id: str | None = None
 	last_login_at: datetime | None = None
 	created_at: datetime
 	updated_at: datetime
@@ -39,6 +44,7 @@ class CreateUserRequest(BaseModel):
 	full_name: str
 	password: str
 	role: str = "user"
+	floor_id: str | None = None
 
 
 class UpdateUserRequest(BaseModel):
@@ -48,3 +54,16 @@ class UpdateUserRequest(BaseModel):
 	password: str | None = None
 	role: str | None = None
 	status: str | None = None
+	floor_id: str | None = None
+
+
+class FloorItemResponse(BaseModel):
+	model_config = ConfigDict(from_attributes=True)
+	floor_id: str
+	organization_id: str
+	name: str
+	slug: str
+
+
+class FloorListResponse(BaseModel):
+	items: list[FloorItemResponse]

@@ -40,6 +40,15 @@ def list_users(
 	)
 
 
+@router.get("/transfer-requests", response_model=UserListResponse)
+def list_transfer_requests(
+	request: Request,
+	current_context=Depends(get_current_auth_context),
+	service=Depends(_get_user_service),
+) -> UserListResponse:
+	return service.list_transfer_requests(current_context)
+
+
 @router.post("", response_model=UserItemResponse, status_code=status.HTTP_201_CREATED)
 def create_user(
 	request: Request,
@@ -70,6 +79,28 @@ def update_user(
 ) -> UserItemResponse:
 	ip, ua = _request_meta(request)
 	return service.update_user(current_context, user_id, payload, ip_address=ip, user_agent=ua)
+
+
+@router.post("/{user_id}/approve-transfer", response_model=UserItemResponse)
+def approve_transfer(
+	user_id: str,
+	request: Request,
+	current_context=Depends(get_current_auth_context),
+	service=Depends(_get_user_service),
+) -> UserItemResponse:
+	ip, ua = _request_meta(request)
+	return service.approve_transfer(current_context, user_id, ip_address=ip, user_agent=ua)
+
+
+@router.post("/{user_id}/reject-transfer", response_model=UserItemResponse)
+def reject_transfer(
+	user_id: str,
+	request: Request,
+	current_context=Depends(get_current_auth_context),
+	service=Depends(_get_user_service),
+) -> UserItemResponse:
+	ip, ua = _request_meta(request)
+	return service.reject_transfer(current_context, user_id, ip_address=ip, user_agent=ua)
 
 
 @router.delete("/{user_id}", response_model=SuccessResponse)

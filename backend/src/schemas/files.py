@@ -19,8 +19,9 @@ class FileItemResponse(BaseModel):
 	size_bytes: int
 	sha256: str
 	encryption_algorithm: Literal["AES-256-GCM"]
-	vault_type: Literal["general", "private"]
+	vault_type: Literal["floor", "company", "private"]
 	publish_status: Literal["pending", "published", "rejected", "na"]
+	floor_id: str | None = None
 	reviewed_by_user_id: str | None = None
 	reviewed_at: datetime | None = None
 	review_note: str | None = None
@@ -61,9 +62,14 @@ class FileRejectRequest(BaseModel):
 class FileAdminUpdateRequest(BaseModel):
 	model_config = ConfigDict(extra="forbid")
 	original_name: str | None = None
-	vault_type: Literal["general", "private"] | None = None
+	vault_type: Literal["floor", "company", "private"] | None = None
 	publish_status: Literal["pending", "published", "rejected", "na"] | None = None
 	status: Literal["active", "deleted", "quarantined"] | None = None
+
+
+class RequestPublishRequest(BaseModel):
+	model_config = ConfigDict(extra="forbid")
+	target: Literal["floor", "company"]
 
 
 class PublishRequestResponse(BaseModel):
@@ -75,6 +81,7 @@ class PublishRequestResponse(BaseModel):
 	file_name: str
 	requester_user_id: str
 	requester_name: str
+	target: Literal["floor", "company"]
 	status: Literal["pending", "approved", "rejected"]
 	reviewed_by_user_id: str | None = None
 	reviewed_at: datetime | None = None

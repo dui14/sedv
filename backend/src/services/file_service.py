@@ -9,11 +9,10 @@ from ..domain.entities.auth_session import AuthContext
 from ..domain.entities.file import FileRecord
 from ..domain.enums.statuses import PublishStatus, RequestStatus, Status, VaultType
 from ..domain.policies.access_policy import (
-	can_approve_file,
+	can_approve_target,
 	can_delete_file,
 	can_download_file,
 	can_manage_users,
-	can_view_all_files,
 	can_view_file,
 )
 from ..infrastructure.crypto.encryption import decrypt_bytes, derive_file_key, encrypt_bytes
@@ -61,11 +60,19 @@ class FileService:
 	) -> FileListResponse:
 		term = validate_search_term(search)
 		role = context.user.role
+		user_floor_id = context.user.floor_id
 
-		if role == "admin":
+		if role == "company":
 			records = self._file_repository.list_files(
 				context.user.organization_id,
 				vault_type=vault_type,
+				search=term,
+			)
+		elif role == "admin":
+			records = self._file_repository.list_files(
+				context.user.organization_id,
+				vault_type=vault_type,
+				floor_id=user_floor_id,
 				search=term,
 			)
 		elif role == "manager":
@@ -76,16 +83,24 @@ class FileService:
 					vault_type=VaultType.PRIVATE.value,
 					search=term,
 				)
-			elif vault_type == "general":
+			elif vault_type in {"floor", "company"}:
 				records = self._file_repository.list_files(
 					context.user.organization_id,
-					vault_type=VaultType.GENERAL.value,
+					vault_type=vault_type,
+					floor_id=user_floor_id if vault_type == "floor" else None,
 					search=term,
 				)
 			else:
-				general_records = self._file_repository.list_files(
+				floor_records = self._file_repository.list_files(
 					context.user.organization_id,
-					vault_type=VaultType.GENERAL.value,
+					vault_type=VaultType.FLOOR.value,
+					floor_id=user_floor_id,
+					search=term,
+				)
+				company_records = self._file_repository.list_files(
+					context.user.organization_id,
+					vault_type=VaultType.COMPANY.value,
+					publish_status=PublishStatus.PUBLISHED.value,
 					search=term,
 				)
 				private_records = self._file_repository.list_files(
@@ -94,41 +109,56 @@ class FileService:
 					vault_type=VaultType.PRIVATE.value,
 					search=term,
 				)
-				records = sorted(general_records + private_records, key=lambda r: r.created_at, reverse=True)
+				records = sorted(floor_records + company_records + private_records, key=lambda r: r.created_at, reverse=True)
 		else:
 			if vault_type == "private":
 				records = self._file_repository.list_files(
 					context.user.organization_id,
 					owner_user_id=context.user.user_id,
-					vault_type="private",
+					vault_type=VaultType.PRIVATE.value,
 					search=term,
 				)
-			elif vault_type == "general":
-				all_general = self._file_repository.list_files(
+			elif vault_type == "floor":
+				all_floor = self._file_repository.list_files(
 					context.user.organization_id,
-					vault_type="general",
+					vault_type=VaultType.FLOOR.value,
+					floor_id=user_floor_id,
 					search=term,
 				)
 				records = [
-					r for r in all_general
+					r for r in all_floor
 					if r.publish_status == PublishStatus.PUBLISHED.value or r.owner_user_id == context.user.user_id
 				]
+			elif vault_type == "company":
+				records = self._file_repository.list_files(
+					context.user.organization_id,
+					vault_type=VaultType.COMPANY.value,
+					publish_status=PublishStatus.PUBLISHED.value,
+					search=term,
+				)
 			else:
 				private_records = self._file_repository.list_files(
 					context.user.organization_id,
 					owner_user_id=context.user.user_id,
-					vault_type="private",
+					vault_type=VaultType.PRIVATE.value,
 					search=term,
 				)
-				general_published = [
+				floor_published = [
 					r for r in self._file_repository.list_files(
 						context.user.organization_id,
-						vault_type="general",
+						vault_type=VaultType.FLOOR.value,
+						floor_id=user_floor_id,
 						search=term,
 					)
 					if r.publish_status == PublishStatus.PUBLISHED.value or r.owner_user_id == context.user.user_id
 				]
-				records = private_records + general_published
+				company_published = self._file_repository.list_files(
+					context.user.organization_id,
+					vault_type=VaultType.COMPANY.value,
+					publish_status=PublishStatus.PUBLISHED.value,
+					search=term,
+				)
+				records = sorted(private_records + floor_published + company_published, key=lambda r: r.created_at, reverse=True)
 
 		records = [r for r in records if r.publish_status != PublishStatus.REJECTED.value]
 		total = len(records)
@@ -154,14 +184,18 @@ class FileService:
 		filename: str | None,
 		content_type: str | None,
 		content: bytes,
-		vault_type: str = "general",
+		vault_type: str = "private",
 		ip_address: str | None = None,
 		user_agent: str | None = None,
 	) -> FileItemResponse:
 		storage_name = None
 		try:
-			if vault_type not in {VaultType.GENERAL.value, VaultType.PRIVATE.value}:
-				raise ValidationAppError(code="invalid_vault_type", message="vault_type must be general or private.")
+			allowed_types = {VaultType.FLOOR.value, VaultType.COMPANY.value, VaultType.PRIVATE.value}
+			if vault_type not in allowed_types:
+				raise ValidationAppError(code="invalid_vault_type", message="vault_type must be floor, company, or private.")
+			if context.user.role == "user" and vault_type not in {VaultType.PRIVATE.value, VaultType.FLOOR.value}:
+				raise ForbiddenError(code="forbidden", message="Users can only upload to private or floor vault.")
+
 			original_name = validate_file_name(filename)
 			mime_type = validate_upload_mime_type(content_type, self._settings.allowed_upload_mime_types)
 			payload = validate_upload_bytes(content, self._settings.max_upload_size_bytes)
@@ -170,19 +204,23 @@ class FileService:
 			storage_name = f"{new_id()}.bin"
 			storage_path = self._storage.write(storage_name, encrypted_bytes)
 			now = now_utc()
+			floor_id = context.user.floor_id
 
-			reviewed_by_user_id = None
-			reviewed_at = None
-			review_note = None
-			if vault_type == VaultType.GENERAL.value and can_approve_file(context.user.role):
+			if vault_type == VaultType.PRIVATE.value:
+				publish_status = PublishStatus.NOT_APPLICABLE.value
+				reviewed_by_user_id = None
+				reviewed_at = None
+				review_note = None
+			elif context.user.role in {"admin", "manager", "company"}:
 				publish_status = PublishStatus.PUBLISHED.value
 				reviewed_by_user_id = context.user.user_id
 				reviewed_at = now
 				review_note = "Auto-published by privileged uploader."
-			elif vault_type == VaultType.GENERAL.value:
-				publish_status = PublishStatus.PENDING.value
 			else:
-				publish_status = PublishStatus.NOT_APPLICABLE.value
+				publish_status = PublishStatus.PENDING.value
+				reviewed_by_user_id = None
+				reviewed_at = None
+				review_note = None
 
 			record = FileRecord(
 				file_id=new_id(),
@@ -200,6 +238,7 @@ class FileService:
 				encryption_key_version=self._settings.file_encryption_key_version,
 				vault_type=vault_type,
 				publish_status=publish_status,
+				floor_id=floor_id,
 				reviewed_by_user_id=reviewed_by_user_id,
 				reviewed_at=reviewed_at,
 				review_note=review_note,
@@ -259,7 +298,9 @@ class FileService:
 		if not can_download_file(
 			context.user.role,
 			actor_user_id=context.user.user_id,
+			actor_floor_id=context.user.floor_id,
 			owner_user_id=record.owner_user_id,
+			file_floor_id=record.floor_id,
 			vault_type=record.vault_type,
 			publish_status=record.publish_status,
 		):
@@ -344,84 +385,6 @@ class FileService:
 		)
 		return FileDeleteResponse(success=True, deleted_file_id=record.file_id)
 
-	def approve_file(
-		self,
-		context: AuthContext,
-		file_id: str,
-		*,
-		note: str | None = None,
-		ip_address: str | None = None,
-		user_agent: str | None = None,
-	) -> FileItemResponse:
-		if not can_approve_file(context.user.role):
-			raise ForbiddenError(code="forbidden", message="Only managers and admins can approve files.")
-		record = self._file_repository.get_file_by_id(file_id)
-		if record is None or record.organization_id != context.user.organization_id or record.status != Status.ACTIVE.value:
-			raise NotFoundError(code="file_not_found", message="The requested file could not be found.")
-		if record.vault_type != VaultType.GENERAL.value:
-			raise ForbiddenError(code="forbidden", message="Only general vault files can be approved.")
-		if record.publish_status != PublishStatus.PENDING.value:
-			raise ConflictError(code="not_pending", message="File is not in pending state.")
-		now = now_utc()
-		updated = self._file_repository.update_publish_status(
-			file_id,
-			publish_status=PublishStatus.PUBLISHED.value,
-			reviewed_by_user_id=context.user.user_id,
-			reviewed_at=now,
-			review_note=note,
-		)
-		self._audit_service.record_event(
-			organization_id=context.user.organization_id,
-			actor_user_id=context.user.user_id,
-			action="approve",
-			resource_type="file",
-			resource_id=file_id,
-			result="success",
-			reason=note,
-			ip_address=ip_address,
-			user_agent=user_agent,
-		)
-		return self._to_item_response(updated)
-
-	def reject_file(
-		self,
-		context: AuthContext,
-		file_id: str,
-		*,
-		note: str | None = None,
-		ip_address: str | None = None,
-		user_agent: str | None = None,
-	) -> FileItemResponse:
-		if not can_approve_file(context.user.role):
-			raise ForbiddenError(code="forbidden", message="Only managers and admins can reject files.")
-		record = self._file_repository.get_file_by_id(file_id)
-		if record is None or record.organization_id != context.user.organization_id or record.status != Status.ACTIVE.value:
-			raise NotFoundError(code="file_not_found", message="The requested file could not be found.")
-		if record.vault_type != VaultType.GENERAL.value:
-			raise ForbiddenError(code="forbidden", message="Only general vault files can be rejected.")
-		if record.publish_status != PublishStatus.PENDING.value:
-			raise ConflictError(code="not_pending", message="File is not in pending state.")
-		now = now_utc()
-		updated = self._file_repository.update_publish_status(
-			file_id,
-			publish_status=PublishStatus.REJECTED.value,
-			reviewed_by_user_id=context.user.user_id,
-			reviewed_at=now,
-			review_note=note,
-		)
-		self._audit_service.record_event(
-			organization_id=context.user.organization_id,
-			actor_user_id=context.user.user_id,
-			action="reject",
-			resource_type="file",
-			resource_id=file_id,
-			result="success",
-			reason=note,
-			ip_address=ip_address,
-			user_agent=user_agent,
-		)
-		return self._to_item_response(updated)
-
 	def list_pending_approvals(
 		self,
 		context: AuthContext,
@@ -431,13 +394,34 @@ class FileService:
 		ip_address: str | None = None,
 		user_agent: str | None = None,
 	) -> FileListResponse:
-		if not can_approve_file(context.user.role):
-			raise ForbiddenError(code="forbidden", message="Only managers and admins can view the approval queue.")
-		records = self._file_repository.list_files(
-			context.user.organization_id,
-			vault_type=VaultType.GENERAL.value,
-			publish_status=PublishStatus.PENDING.value,
-		)
+		if context.user.role not in {"admin", "manager", "company"}:
+			raise ForbiddenError(code="forbidden", message="Access denied.")
+		if context.user.role == "manager":
+			records = self._file_repository.list_files(
+				context.user.organization_id,
+				vault_type=VaultType.FLOOR.value,
+				floor_id=context.user.floor_id,
+				publish_status=PublishStatus.PENDING.value,
+			)
+		elif context.user.role == "admin":
+			records = self._file_repository.list_files(
+				context.user.organization_id,
+				vault_type=VaultType.COMPANY.value,
+				floor_id=context.user.floor_id,
+				publish_status=PublishStatus.PENDING.value,
+			)
+		else:
+			pending_floor = self._file_repository.list_files(
+				context.user.organization_id,
+				vault_type=VaultType.FLOOR.value,
+				publish_status=PublishStatus.PENDING.value,
+			)
+			pending_company = self._file_repository.list_files(
+				context.user.organization_id,
+				vault_type=VaultType.COMPANY.value,
+				publish_status=PublishStatus.PENDING.value,
+			)
+			records = sorted(pending_floor + pending_company, key=lambda r: r.created_at, reverse=True)
 		total = len(records)
 		start = (page - 1) * page_size
 		items = [self._to_item_response(r) for r in records[start:start + page_size]]
@@ -448,40 +432,43 @@ class FileService:
 		context: AuthContext,
 		file_id: str,
 		*,
+		target: str,
 		ip_address: str | None = None,
 		user_agent: str | None = None,
 	) -> PublishRequestResponse:
+		if target not in {"floor", "company"}:
+			raise ValidationAppError(code="invalid_target", message="target must be floor or company.")
+
 		record = self._file_repository.get_file_by_id(file_id)
 		if record is None or record.organization_id != context.user.organization_id or record.status != Status.ACTIVE.value:
 			raise NotFoundError(code="file_not_found", message="The requested file could not be found.")
-		if record.owner_user_id != context.user.user_id:
-			raise ForbiddenError(code="forbidden", message="You can only request publish for your own files.")
-		existing = self._file_repository.get_pending_publish_request(file_id)
-		if can_approve_file(context.user.role):
-			if record.vault_type != VaultType.PRIVATE.value and existing is None:
+
+		role = context.user.role
+
+		if role == "user":
+			if target != "floor":
+				raise ForbiddenError(code="forbidden", message="Users can only request publish to floor.")
+			if record.owner_user_id != context.user.user_id:
+				raise ForbiddenError(code="forbidden", message="You can only request publish for your own files.")
+			if record.vault_type != VaultType.PRIVATE.value:
 				raise ConflictError(code="not_private", message="Only private vault files can be requested for publish.")
-			if existing is None:
-				existing = self._file_repository.create_publish_request(
-					organization_id=context.user.organization_id,
-					file_id=file_id,
-					requester_user_id=context.user.user_id,
-				)
-			now = now_utc()
-			updated_request = self._file_repository.update_publish_request(
-				existing.request_id,
-				status=RequestStatus.APPROVED.value,
-				reviewed_by_user_id=context.user.user_id,
-				reviewed_at=now,
-				review_note="Auto-published by privileged requester.",
+			existing = self._file_repository.get_pending_publish_request(file_id)
+			if existing is not None:
+				return self._to_request_response(existing, record)
+			request = self._file_repository.create_publish_request(
+				organization_id=context.user.organization_id,
+				file_id=file_id,
+				requester_user_id=context.user.user_id,
+				target="floor",
 			)
-			record = self._file_repository.admin_update_file(
+			updated_record = self._file_repository.admin_update_file(
 				file_id,
 				fields={
-					"vault_type": VaultType.GENERAL.value,
-					"publish_status": PublishStatus.PUBLISHED.value,
-					"reviewed_by_user_id": context.user.user_id,
-					"reviewed_at": now,
-					"review_note": "Auto-published by privileged requester.",
+					"vault_type": VaultType.FLOOR.value,
+					"publish_status": PublishStatus.PENDING.value,
+					"reviewed_by_user_id": None,
+					"reviewed_at": None,
+					"review_note": None,
 				},
 			)
 			self._audit_service.record_event(
@@ -491,33 +478,50 @@ class FileService:
 				resource_type="file",
 				resource_id=file_id,
 				result="success",
-				reason="auto_published",
+				reason="target=floor",
 				ip_address=ip_address,
 				user_agent=user_agent,
 			)
-			return self._to_request_response(updated_request, record)
-		if existing is not None:
-			synced = self._sync_file_for_publish_review(file_id)
-			return self._to_request_response(existing, synced)
-		if record.vault_type != VaultType.PRIVATE.value:
-			raise ConflictError(code="not_private", message="Only private vault files can be requested for publish.")
-		request = self._file_repository.create_publish_request(
-			organization_id=context.user.organization_id,
-			file_id=file_id,
-			requester_user_id=context.user.user_id,
-		)
-		record = self._sync_file_for_publish_review(file_id)
-		self._audit_service.record_event(
-			organization_id=context.user.organization_id,
-			actor_user_id=context.user.user_id,
-			action="request_publish",
-			resource_type="file",
-			resource_id=file_id,
-			result="success",
-			ip_address=ip_address,
-			user_agent=user_agent,
-		)
-		return self._to_request_response(request, record)
+			return self._to_request_response(request, updated_record)
+
+		if role == "manager":
+			if target != "company":
+				raise ForbiddenError(code="forbidden", message="Managers can only promote floor files to company.")
+			if record.vault_type != VaultType.FLOOR.value or record.publish_status != PublishStatus.PUBLISHED.value:
+				raise ConflictError(code="not_published_floor", message="Only published floor files can be promoted to company.")
+			existing = self._file_repository.get_pending_publish_request(file_id)
+			if existing is not None and existing.target == "company":
+				return self._to_request_response(existing, record)
+			request = self._file_repository.create_publish_request(
+				organization_id=context.user.organization_id,
+				file_id=file_id,
+				requester_user_id=context.user.user_id,
+				target="company",
+			)
+			updated_record = self._file_repository.admin_update_file(
+				file_id,
+				fields={
+					"vault_type": VaultType.COMPANY.value,
+					"publish_status": PublishStatus.PENDING.value,
+					"reviewed_by_user_id": None,
+					"reviewed_at": None,
+					"review_note": None,
+				},
+			)
+			self._audit_service.record_event(
+				organization_id=context.user.organization_id,
+				actor_user_id=context.user.user_id,
+				action="request_promote",
+				resource_type="file",
+				resource_id=file_id,
+				result="success",
+				reason="target=company",
+				ip_address=ip_address,
+				user_agent=user_agent,
+			)
+			return self._to_request_response(request, updated_record)
+
+		raise ForbiddenError(code="forbidden", message="Your role cannot request publish.")
 
 	def list_publish_requests(
 		self,
@@ -527,12 +531,41 @@ class FileService:
 		page: int,
 		page_size: int,
 	) -> PublishRequestListResponse:
-		if not can_approve_file(context.user.role):
-			raise ForbiddenError(code="forbidden", message="Only managers and admins can view publish requests.")
-		requests = self._file_repository.list_publish_requests(
-			context.user.organization_id,
-			status=status,
-		)
+		if context.user.role not in {"admin", "manager", "company"}:
+			raise ForbiddenError(code="forbidden", message="Access denied.")
+		if context.user.role == "manager":
+			team_members = self._auth_repository.list_users_by_manager_id(
+				context.user.organization_id, context.user.user_id
+			)
+			team_ids = [m.user_id for m in team_members] + [context.user.user_id]
+			floor_requests = self._file_repository.list_publish_requests(
+				context.user.organization_id,
+				status=status,
+				target="floor",
+				requester_user_ids=team_ids,
+			)
+			company_requests = self._file_repository.list_publish_requests(
+				context.user.organization_id,
+				status=status,
+				target="company",
+				requester_user_ids=[context.user.user_id],
+			)
+			requests = sorted(floor_requests + company_requests, key=lambda r: r.created_at, reverse=True)
+		elif context.user.role == "admin":
+			floor_user_ids = self._auth_repository.list_user_ids_by_floor(
+				context.user.organization_id, context.user.floor_id
+			)
+			requests = self._file_repository.list_publish_requests(
+				context.user.organization_id,
+				status=status,
+				target="company",
+				requester_user_ids=floor_user_ids,
+			)
+		else:
+			requests = self._file_repository.list_publish_requests(
+				context.user.organization_id,
+				status=status,
+			)
 		total = len(requests)
 		start = (page - 1) * page_size
 		items = []
@@ -552,13 +585,13 @@ class FileService:
 		ip_address: str | None = None,
 		user_agent: str | None = None,
 	) -> PublishRequestResponse:
-		if not can_approve_file(context.user.role):
-			raise ForbiddenError(code="forbidden", message="Only managers and admins can review publish requests.")
 		req = self._file_repository.get_publish_request_by_id(request_id)
 		if req is None or req.organization_id != context.user.organization_id:
 			raise NotFoundError(code="request_not_found", message="The publish request could not be found.")
 		if req.status != RequestStatus.PENDING.value:
 			raise ConflictError(code="not_pending", message="Request is not in pending state.")
+		if not can_approve_target(context.user.role, req.target):
+			raise ForbiddenError(code="forbidden", message="You do not have permission to review this request.")
 		now = now_utc()
 		new_status = RequestStatus.APPROVED.value if approved else RequestStatus.REJECTED.value
 		updated_req = self._file_repository.update_publish_request(
@@ -573,18 +606,28 @@ class FileService:
 			file_record = self._file_repository.update_publish_status(
 				req.file_id,
 				publish_status=PublishStatus.PUBLISHED.value,
+				vault_type=req.target,
 				reviewed_by_user_id=context.user.user_id,
 				reviewed_at=now,
 				review_note=note,
 			)
-		elif file_record is not None:
-			file_record = self._file_repository.update_publish_status(
-				req.file_id,
-				publish_status=PublishStatus.REJECTED.value,
-				reviewed_by_user_id=context.user.user_id,
-				reviewed_at=now,
-				review_note=note,
-			)
+		elif not approved and file_record is not None:
+			if req.target == "company":
+				file_record = self._file_repository.update_publish_status(
+					req.file_id,
+					publish_status=PublishStatus.PUBLISHED.value,
+					vault_type=VaultType.FLOOR.value,
+					reviewed_by_user_id=context.user.user_id,
+					reviewed_at=now,
+					review_note=note,
+				)
+			else:
+				try:
+					self._storage.delete(file_record.storage_name)
+				except (FileNotFoundError, OSError):
+					pass
+				self._file_repository.hard_delete_file(file_record.file_id)
+				file_record = None
 		action = "approve_publish_request" if approved else "reject_publish_request"
 		self._audit_service.record_event(
 			organization_id=context.user.organization_id,
@@ -627,18 +670,6 @@ class FileService:
 		)
 		return self._to_item_response(updated)
 
-	def _sync_file_for_publish_review(self, file_id: str) -> FileRecord:
-		return self._file_repository.admin_update_file(
-			file_id,
-			fields={
-				"vault_type": VaultType.GENERAL.value,
-				"publish_status": PublishStatus.PENDING.value,
-				"reviewed_by_user_id": None,
-				"reviewed_at": None,
-				"review_note": None,
-			},
-		)
-
 	def _resolve_visible_file(self, context: AuthContext, file_id: str, *, for_delete: bool = False) -> FileRecord:
 		record = self._file_repository.get_file_by_id(file_id)
 		if record is None or record.organization_id != context.user.organization_id or record.status != Status.ACTIVE.value:
@@ -655,7 +686,9 @@ class FileService:
 		if not can_view_file(
 			context.user.role,
 			actor_user_id=context.user.user_id,
+			actor_floor_id=context.user.floor_id,
 			owner_user_id=record.owner_user_id,
+			file_floor_id=record.floor_id,
 			vault_type=record.vault_type,
 			publish_status=record.publish_status,
 		):
@@ -698,6 +731,7 @@ class FileService:
 			encryption_algorithm=record.encryption_algorithm,
 			vault_type=record.vault_type,
 			publish_status=record.publish_status,
+			floor_id=record.floor_id,
 			reviewed_by_user_id=record.reviewed_by_user_id,
 			reviewed_at=record.reviewed_at,
 			review_note=record.review_note,
@@ -718,6 +752,7 @@ class FileService:
 			file_name=file_name,
 			requester_user_id=req.requester_user_id,
 			requester_name=requester_name,
+			target=req.target,
 			status=req.status,
 			reviewed_by_user_id=req.reviewed_by_user_id,
 			reviewed_at=req.reviewed_at,

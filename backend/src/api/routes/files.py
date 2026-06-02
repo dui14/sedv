@@ -16,6 +16,7 @@ from ...schemas.files import (
 	FileRejectRequest,
 	PublishRequestListResponse,
 	PublishRequestResponse,
+	RequestPublishRequest,
 )
 from ...services.file_service import FileDownloadResult, FileService
 
@@ -54,7 +55,7 @@ def list_files(
 async def upload_file(
 	request: Request,
 	uploaded_file: UploadFile = File(...),
-	vault_type: str = Form(default="general"),
+	vault_type: str = Form(default="private"),
 	current_context=Depends(get_current_auth_context),
 	service: FileService = Depends(get_file_service),
 ) -> FileItemResponse:
@@ -199,11 +200,12 @@ def reject_file(
 def request_publish(
 	file_id: str,
 	request: Request,
+	payload: RequestPublishRequest,
 	current_context=Depends(get_current_auth_context),
 	service: FileService = Depends(get_file_service),
 ) -> PublishRequestResponse:
 	ip_address, user_agent = _request_metadata(request)
-	return service.request_publish(current_context, file_id, ip_address=ip_address, user_agent=user_agent)
+	return service.request_publish(current_context, file_id, target=payload.target, ip_address=ip_address, user_agent=user_agent)
 
 
 @router.patch("/{file_id}", response_model=FileItemResponse)
