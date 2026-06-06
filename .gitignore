@@ -67,6 +67,7 @@ agents/**/*.md
 skills/
 spec/
 Secure_Enterprise_Data_Vault_Report.md
+.codegraph/
 
 # Misc generated artifacts
 *.docx
