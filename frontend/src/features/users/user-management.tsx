@@ -43,7 +43,7 @@ export function UserManagement() {
   const [modal, setModal] = useState<UserModal>(null);
   const [formState, setFormState] = useState({
     email: "", full_name: "", password: "", role: "user" as FormRole,
-    status: "active" as FormStatus, floor_id: "" as string,
+    status: "active" as FormStatus, floor_id: "" as string, department: "" as string,
   });
   const [formError, setFormError] = useState<string | null>(null);
   const [formLoading, setFormLoading] = useState(false);
@@ -99,14 +99,14 @@ export function UserManagement() {
   }
 
   function openCreate() {
-    setFormState({ email: "", full_name: "", password: "", role: "user", status: "active", floor_id: isCompany ? "" : (me?.floor_id ?? "") });
+    setFormState({ email: "", full_name: "", password: "", role: "user", status: "active", floor_id: isCompany ? "" : (me?.floor_id ?? ""), department: "" });
     setFormError(null); setModal({ mode: "create" });
   }
 
   function openEdit(user: UserItem) {
     if (!isCompany && user.role === "admin") return;
     if (!isCompany && user.role === "company") return;
-    setFormState({ email: user.email, full_name: user.full_name, password: "", role: user.role, status: user.status, floor_id: user.floor_id ?? "" });
+    setFormState({ email: user.email, full_name: user.full_name, password: "", role: user.role, status: user.status, floor_id: user.floor_id ?? "", department: user.department ?? "" });
     setFormError(null); setModal({ mode: "edit", user });
   }
 
@@ -123,6 +123,7 @@ export function UserManagement() {
           password: formState.password, role: formState.role,
         };
         if (isCompany && formState.floor_id) body.floor_id = formState.floor_id;
+        if (formState.department) body.department = formState.department;
         await apiRequest("/api/users", {
           method: "POST",
           headers: { ...authHeaders(token), "Content-Type": "application/json" },
@@ -138,6 +139,9 @@ export function UserManagement() {
         if (formState.password.trim()) patch.password = formState.password;
         if (formState.floor_id && formState.floor_id !== (modal.user.floor_id ?? "")) {
           patch.floor_id = formState.floor_id;
+        }
+        if (formState.department !== (modal.user.department ?? "")) {
+          patch.department = formState.department;
         }
         if (Object.keys(patch).length > 0) {
           await apiRequest(`/api/users/${modal.user.user_id}`, {
@@ -197,10 +201,26 @@ export function UserManagement() {
   }
 
   const availableRoles: FormRole[] = isCompany
-    ? ["company", "admin", "manager", "user"]
+    ? ["admin", "manager", "user"]
     : ["manager", "user"];
 
   const floorOptions = floors.filter(f => isCompany || f.floor_id !== me?.floor_id || true);
+
+  const FLOOR_DEPARTMENTS: Record<string, string[]> = {
+    "business-operations": ["Sales", "Operations", "Support"],
+    "business operations": ["Sales", "Operations", "Support"],
+    "engineering": ["FE", "BE", "Product"],
+  };
+
+  function getDepartmentsForFloor(floorId: string): string[] {
+    const floor = floors.find(f => f.floor_id === floorId);
+    if (!floor) return [];
+    const key = floor.name.toLowerCase();
+    const slugKey = floor.slug.toLowerCase();
+    return FLOOR_DEPARTMENTS[key] ?? FLOOR_DEPARTMENTS[slugKey] ?? [];
+  }
+
+  const departmentOptions = formState.floor_id ? getDepartmentsForFloor(formState.floor_id) : [];
 
   return (
     <div className={styles.page}>
@@ -305,6 +325,9 @@ export function UserManagement() {
                       {u.floor_name ? (
                         <span className={styles.floorTag}><Building2 size={11} />{u.floor_name}</span>
                       ) : "—"}
+                      {u.department && (
+                        <span className={styles.departmentTag}>{u.department}</span>
+                      )}
                       {u.pending_floor_name && (
                         <span className={styles.pendingFloorTag}>
                           <ArrowRight size={10} />{u.pending_floor_name}
@@ -381,12 +404,12 @@ export function UserManagement() {
               {(isCompany || modal.mode === "edit") && floors.length > 0 && (
                 <label className={styles.field}>
                   <span className={styles.fieldLabel}>
-                    {modal.mode === "edit" ? "Transfer to floor" : "Floor"}
+                    {modal.mode === "edit" && !isCompany ? "Transfer to floor" : "Floor"}
                   </span>
                   <select
                     className={styles.select}
                     value={formState.floor_id}
-                    onChange={(e) => setFormState((s) => ({ ...s, floor_id: e.target.value }))}
+                    onChange={(e) => setFormState((s) => ({ ...s, floor_id: e.target.value, department: "" }))}
                     disabled={formLoading}
                   >
                     <option value="">— No floor —</option>
@@ -394,11 +417,22 @@ export function UserManagement() {
                       <option key={f.floor_id} value={f.floor_id}>{f.name}</option>
                     ))}
                   </select>
-                  {modal.mode === "edit" && formState.floor_id && formState.floor_id !== (modal.user.floor_id ?? "") && (
-                    <p className={styles.fieldHint}>
-                      This will initiate a transfer request — user status becomes Pending until approved.
-                    </p>
-                  )}
+                </label>
+              )}
+              {formState.floor_id && departmentOptions.length > 0 && (
+                <label className={styles.field}>
+                  <span className={styles.fieldLabel}>Department</span>
+                  <select
+                    className={styles.select}
+                    value={formState.department}
+                    onChange={(e) => setFormState((s) => ({ ...s, department: e.target.value }))}
+                    disabled={formLoading}
+                  >
+                    <option value="">— No department —</option>
+                    {departmentOptions.map((d) => (
+                      <option key={d} value={d}>{d}</option>
+                    ))}
+                  </select>
                 </label>
               )}
               {modal.mode === "edit" && (

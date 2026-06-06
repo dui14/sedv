@@ -20,6 +20,7 @@ class UserItemResponse(BaseModel):
 	pending_floor_id: str | None = None
 	pending_floor_name: str | None = None
 	manager_id: str | None = None
+	department: str | None = None
 	last_login_at: datetime | None = None
 	created_at: datetime
 	updated_at: datetime
@@ -45,6 +46,7 @@ class CreateUserRequest(BaseModel):
 	password: str
 	role: str = "user"
 	floor_id: str | None = None
+	department: str | None = None
 
 
 class UpdateUserRequest(BaseModel):
@@ -55,6 +57,7 @@ class UpdateUserRequest(BaseModel):
 	role: str | None = None
 	status: str | None = None
 	floor_id: str | None = None
+	department: str | None = None
 
 
 class FloorItemResponse(BaseModel):

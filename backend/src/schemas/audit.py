@@ -11,6 +11,8 @@ class AuditLogItemResponse(BaseModel):
 	organization_id: str
 	actor_user_id: str
 	actor_name: str
+	actor_floor_name: str | None = None
+	actor_department: str | None = None
 	action: str
 	resource_type: str
 	resource_id: str | None

@@ -159,6 +159,7 @@ class UserService:
 			role=payload.role,
 			status=Status.ACTIVE.value,
 			floor_id=floor_id,
+			department=payload.department,
 		)
 		self._audit_service.record_event(
 			organization_id=context.user.organization_id,
@@ -204,6 +205,20 @@ class UserService:
 			raise ValidationAppError(code="invalid_status", message="status must be active, disabled, or pending.")
 
 		if payload.floor_id is not None and payload.floor_id != target.floor_id:
+			if can_manage_any_user(context.user.role):
+				updated = self._auth_repository.update_user(user_id, floor_id=payload.floor_id)
+				self._audit_service.record_event(
+					organization_id=context.user.organization_id,
+					actor_user_id=context.user.user_id,
+					action="update_user",
+					resource_type="user",
+					resource_id=user_id,
+					result="success",
+					reason=f"floor_id={payload.floor_id}",
+					ip_address=ip_address,
+					user_agent=user_agent,
+				)
+				return UserItemResponse.model_validate(updated)
 			updated = self._auth_repository.initiate_floor_transfer(user_id, payload.floor_id)
 			self._audit_service.record_event(
 				organization_id=context.user.organization_id,
@@ -235,6 +250,7 @@ class UserService:
 			password_hash=password_hash,
 			role=payload.role,
 			status=payload.status,
+			department=payload.department,
 		)
 		self._audit_service.record_event(
 			organization_id=context.user.organization_id,
