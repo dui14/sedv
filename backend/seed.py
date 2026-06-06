@@ -118,6 +118,7 @@ def run() -> None:
         role: str,
         floor_id: str | None = None,
         manager_id: str | None = None,
+        department: str | None = None,
     ) -> str:
         uid = new_id()
         doc = {
@@ -130,12 +131,14 @@ def run() -> None:
             "status": "active",
             "floor_id": floor_id,
             "manager_id": manager_id,
+            "department": department,
             "last_login_at": None,
             "created_at": now,
             "updated_at": now,
         }
         user_col.insert_one(doc)
-        print(f"  [{role:8s}] {email:45s}  pass: {password}")
+        dept_label = f" [{department}]" if department else ""
+        print(f"  [{role:8s}]{dept_label:12s} {email:45s}  pass: {password}")
         return uid
 
     print("\n--- COMPANY ---")
@@ -162,6 +165,7 @@ def run() -> None:
         password="Manager@123",
         role="manager",
         floor_id=floor1_id,
+        department="Sales",
     )
     for i in range(1, 5):
         insert_user(
@@ -171,6 +175,7 @@ def run() -> None:
             role="user",
             floor_id=floor1_id,
             manager_id=mgr_sales_id,
+            department="Sales",
         )
 
     print("  [Floor 1 > Operations]")
@@ -180,6 +185,7 @@ def run() -> None:
         password="Manager@123",
         role="manager",
         floor_id=floor1_id,
+        department="Operations",
     )
     for i in range(1, 5):
         insert_user(
@@ -189,6 +195,7 @@ def run() -> None:
             role="user",
             floor_id=floor1_id,
             manager_id=mgr_ops_id,
+            department="Operations",
         )
 
     print("  [Floor 1 > Support]")
@@ -198,6 +205,7 @@ def run() -> None:
         password="Manager@123",
         role="manager",
         floor_id=floor1_id,
+        department="Support",
     )
     for i in range(1, 5):
         insert_user(
@@ -207,6 +215,7 @@ def run() -> None:
             role="user",
             floor_id=floor1_id,
             manager_id=mgr_support_id,
+            department="Support",
         )
 
     print("\n--- FLOOR 2: Engineering ---")
@@ -225,6 +234,7 @@ def run() -> None:
         password="Manager@123",
         role="manager",
         floor_id=floor2_id,
+        department="BE",
     )
     for i in range(1, 5):
         insert_user(
@@ -234,6 +244,7 @@ def run() -> None:
             role="user",
             floor_id=floor2_id,
             manager_id=mgr_backend_id,
+            department="BE",
         )
 
     print("  [Floor 2 > Frontend]")
@@ -243,6 +254,7 @@ def run() -> None:
         password="Manager@123",
         role="manager",
         floor_id=floor2_id,
+        department="FE",
     )
     for i in range(1, 5):
         insert_user(
@@ -252,6 +264,7 @@ def run() -> None:
             role="user",
             floor_id=floor2_id,
             manager_id=mgr_frontend_id,
+            department="FE",
         )
 
     print("  [Floor 2 > Product]")
@@ -261,6 +274,7 @@ def run() -> None:
         password="Manager@123",
         role="manager",
         floor_id=floor2_id,
+        department="Product",
     )
     for i in range(1, 5):
         insert_user(
@@ -270,6 +284,7 @@ def run() -> None:
             role="user",
             floor_id=floor2_id,
             manager_id=mgr_product_id,
+            department="Product",
         )
 
     print("\nSeeded 33 accounts total.")

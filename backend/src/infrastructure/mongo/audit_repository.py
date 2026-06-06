@@ -19,6 +19,7 @@ def _audit_log_to_document(record: AuditLogRecord) -> dict:
 		"organization_id": record.organization_id,
 		"actor_user_id": record.actor_user_id,
 		"floor_id": record.floor_id,
+		"department": record.department,
 		"action": record.action,
 		"resource_type": record.resource_type,
 		"resource_id": record.resource_id,
@@ -44,6 +45,7 @@ def _audit_log_from_document(document: dict) -> AuditLogRecord:
 		user_agent=document.get("user_agent"),
 		created_at=ensure_utc(document["created_at"]),
 		floor_id=document.get("floor_id"),
+		department=document.get("department"),
 	)
 
 

@@ -31,10 +31,12 @@ class AuditService:
 		created_at: datetime | None = None,
 	) -> AuditLogRecord:
 		floor_id: str | None = None
+		department: str | None = None
 		if self._auth_repository is not None:
 			actor = self._auth_repository.get_user_by_id(actor_user_id)
 			if actor is not None:
 				floor_id = actor.floor_id
+				department = getattr(actor, "department", None)
 		record = AuditLogRecord(
 			audit_id=new_id(),
 			organization_id=organization_id,
@@ -48,6 +50,7 @@ class AuditService:
 			user_agent=user_agent,
 			created_at=created_at or now_utc(),
 			floor_id=floor_id,
+			department=department,
 		)
 		return self._repository.append(record)
 
@@ -145,6 +148,8 @@ class AuditService:
 			organization_id=record.organization_id,
 			actor_user_id=record.actor_user_id,
 			actor_name=actor.full_name if actor is not None else record.actor_user_id,
+			actor_floor_name=actor.floor_name if actor is not None else None,
+			actor_department=getattr(actor, "department", None) if actor is not None else None,
 			action=record.action,
 			resource_type=record.resource_type,
 			resource_id=record.resource_id,

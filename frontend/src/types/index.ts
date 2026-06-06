@@ -18,6 +18,7 @@ export type AuthUser = {
 	pending_floor_id: string | null;
 	pending_floor_name: string | null;
 	manager_id: string | null;
+	department: string | null;
 	last_login_at: string | null;
 	created_at: string;
 	updated_at: string;
@@ -70,6 +71,8 @@ export type AuditLogItem = {
 	organization_id: string;
 	actor_user_id: string;
 	actor_name: string;
+	actor_floor_name: string | null;
+	actor_department: string | null;
 	action: string;
 	resource_type: string;
 	resource_id: string | null;
@@ -118,6 +121,7 @@ export type UserItem = {
 	pending_floor_id: string | null;
 	pending_floor_name: string | null;
 	manager_id: string | null;
+	department: string | null;
 	last_login_at: string | null;
 	created_at: string;
 	updated_at: string;

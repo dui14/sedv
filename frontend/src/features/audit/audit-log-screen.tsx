@@ -155,7 +155,15 @@ export function AuditLogScreen() {
               <tbody>
                 {rows.map((row) => (
                   <tr key={row.audit_id}>
-                    <td className={styles.tdBold}>{row.actor_name}</td>
+                    <td className={styles.tdBold}>
+                      <span>{row.actor_name}</span>
+                      {row.actor_floor_name && (
+                        <span className={styles.actorFloorTag}>{row.actor_floor_name}</span>
+                      )}
+                      {row.actor_department && (
+                        <span className={styles.actorDeptTag}>{row.actor_department}</span>
+                      )}
+                    </td>
                     <td className={styles.tdMono}>{row.action}</td>
                     <td className={styles.tdMono}>{resourceLabel(row)}</td>
                     <td><span className={RESULT_CLS[row.result] ?? styles.resultError}>{row.result}</span></td>

@@ -18,3 +18,4 @@ class AuditLogRecord:
 	user_agent: str | None
 	created_at: datetime
 	floor_id: str | None = None
+	department: str | None = None

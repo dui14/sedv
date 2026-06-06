@@ -48,6 +48,7 @@ def _user_from_document(document: dict, floor_name: str | None = None, pending_f
 		pending_floor_id=document.get("pending_floor_id"),
 		pending_floor_name=pending_floor_name,
 		manager_id=document.get("manager_id"),
+		department=document.get("department"),
 	)
 
 
@@ -134,6 +135,7 @@ class AuthRepository:
         status: str = Status.ACTIVE.value,
         floor_id: str | None = None,
         manager_id: str | None = None,
+        department: str | None = None,
     ) -> UserRecord:
         now = now_utc()
         document = {
@@ -146,6 +148,7 @@ class AuthRepository:
             "status": status,
             "floor_id": floor_id,
             "manager_id": manager_id,
+            "department": department,
             "last_login_at": None,
             "created_at": now,
             "updated_at": now,
@@ -236,10 +239,13 @@ class AuthRepository:
             for d in self._users.find({"organization_id": organization_id, "manager_id": manager_id})
         ]
 
-    def list_user_ids_by_floor(self, organization_id: str, floor_id: str) -> list[str]:
+    def list_user_ids_by_floor(self, organization_id: str, floor_id: str, *, department: str | None = None) -> list[str]:
+        query: dict = {"organization_id": organization_id, "floor_id": floor_id}
+        if department:
+            query["department"] = department
         return [
             str(d["_id"])
-            for d in self._users.find({"organization_id": organization_id, "floor_id": floor_id}, {"_id": 1})
+            for d in self._users.find(query, {"_id": 1})
         ]
 
     def update_user(
@@ -251,6 +257,8 @@ class AuthRepository:
         password_hash: str | None = None,
         role: str | None = None,
         status: str | None = None,
+        floor_id: str | None = None,
+        department: str | None = None,
     ):
         fields: dict = {"updated_at": now_utc()}
         if email is not None:
@@ -263,6 +271,10 @@ class AuthRepository:
             fields["role"] = role
         if status is not None:
             fields["status"] = status
+        if floor_id is not None:
+            fields["floor_id"] = floor_id
+        if department is not None:
+            fields["department"] = department
         try:
             document = self._users.find_one_and_update(
                 {"_id": user_id},

@@ -21,3 +21,4 @@ class UserRecord:
 	pending_floor_id: str | None = field(default=None)
 	pending_floor_name: str | None = field(default=None)
 	manager_id: str | None = field(default=None)
+	department: str | None = field(default=None)
