@@ -96,7 +96,7 @@ export function ApprovalQueue() {
   }
 
   const queueLabel = user?.role === "manager"
-    ? "Floor publish requests from your team, and your company promotion requests."
+    ? "Floor publish requests from your floor, and your company promotion requests."
     : "Company promotion requests from your floor.";
 
   return (

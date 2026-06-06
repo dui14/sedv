@@ -47,7 +47,13 @@ def _file_to_document(record: FileRecord) -> dict:
 	}
 
 
+_VALID_VAULT_TYPES = {"floor", "company", "private"}
+_VALID_PUBLISH_STATUSES = {"pending", "published", "rejected", "na"}
+
+
 def _file_from_document(document: dict) -> FileRecord:
+	vault_type_raw = document.get("vault_type", "floor")
+	publish_status_raw = document.get("publish_status", "published")
 	return FileRecord(
 		file_id=str(document["_id"]),
 		organization_id=document["organization_id"],
@@ -62,8 +68,8 @@ def _file_from_document(document: dict) -> FileRecord:
 		encryption_algorithm=document["encryption_algorithm"],
 		encryption_iv=document["encryption_iv"],
 		encryption_key_version=document["encryption_key_version"],
-		vault_type=document.get("vault_type", "floor"),
-		publish_status=document.get("publish_status", "published"),
+		vault_type=vault_type_raw if vault_type_raw in _VALID_VAULT_TYPES else "floor",
+		publish_status=publish_status_raw if publish_status_raw in _VALID_PUBLISH_STATUSES else "pending",
 		floor_id=document.get("floor_id"),
 		reviewed_by_user_id=document.get("reviewed_by_user_id"),
 		reviewed_at=ensure_utc(document.get("reviewed_at")),

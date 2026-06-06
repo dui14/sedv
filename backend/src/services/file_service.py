@@ -211,11 +211,16 @@ class FileService:
 				reviewed_by_user_id = None
 				reviewed_at = None
 				review_note = None
-			elif context.user.role in {"admin", "manager", "company"}:
+			elif context.user.role in {"admin", "company"}:
 				publish_status = PublishStatus.PUBLISHED.value
 				reviewed_by_user_id = context.user.user_id
 				reviewed_at = now
 				review_note = "Auto-published by privileged uploader."
+			elif context.user.role == "manager" and vault_type == VaultType.FLOOR.value:
+				publish_status = PublishStatus.PUBLISHED.value
+				reviewed_by_user_id = context.user.user_id
+				reviewed_at = now
+				review_note = "Auto-published by manager."
 			else:
 				publish_status = PublishStatus.PENDING.value
 				reviewed_by_user_id = None
@@ -248,6 +253,16 @@ class FileService:
 				updated_at=now,
 			)
 			created = self._file_repository.create_file(record)
+
+			if publish_status == PublishStatus.PENDING.value:
+				req_target = "company" if vault_type == VaultType.COMPANY.value else "floor"
+				self._file_repository.create_publish_request(
+					organization_id=context.user.organization_id,
+					file_id=created.file_id,
+					requester_user_id=context.user.user_id,
+					target=req_target,
+				)
+
 			self._audit_service.record_event(
 				organization_id=context.user.organization_id,
 				actor_user_id=context.user.user_id,
@@ -534,15 +549,19 @@ class FileService:
 		if context.user.role not in {"admin", "manager", "company"}:
 			raise ForbiddenError(code="forbidden", message="Access denied.")
 		if context.user.role == "manager":
-			team_members = self._auth_repository.list_users_by_manager_id(
-				context.user.organization_id, context.user.user_id
-			)
-			team_ids = [m.user_id for m in team_members] + [context.user.user_id]
+			floor_user_ids: list[str] = []
+			if context.user.floor_id:
+				manager_dept = getattr(context.user, "department", None)
+				floor_user_ids = self._auth_repository.list_user_ids_by_floor(
+					context.user.organization_id,
+					context.user.floor_id,
+					department=manager_dept if manager_dept else None,
+				)
 			floor_requests = self._file_repository.list_publish_requests(
 				context.user.organization_id,
 				status=status,
 				target="floor",
-				requester_user_ids=team_ids,
+				requester_user_ids=floor_user_ids,
 			)
 			company_requests = self._file_repository.list_publish_requests(
 				context.user.organization_id,
@@ -552,14 +571,16 @@ class FileService:
 			)
 			requests = sorted(floor_requests + company_requests, key=lambda r: r.created_at, reverse=True)
 		elif context.user.role == "admin":
-			floor_user_ids = self._auth_repository.list_user_ids_by_floor(
-				context.user.organization_id, context.user.floor_id
-			)
+			floor_user_ids_admin: list[str] = []
+			if context.user.floor_id:
+				floor_user_ids_admin = self._auth_repository.list_user_ids_by_floor(
+					context.user.organization_id, context.user.floor_id
+				)
 			requests = self._file_repository.list_publish_requests(
 				context.user.organization_id,
 				status=status,
 				target="company",
-				requester_user_ids=floor_user_ids,
+				requester_user_ids=floor_user_ids_admin,
 			)
 		else:
 			requests = self._file_repository.list_publish_requests(
